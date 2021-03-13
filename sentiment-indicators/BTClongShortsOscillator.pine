@@ -1,0 +1,47 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © BlueJayBird
+//@version=4
+
+// If this has helped you to improve your trading and therefore your income, any donation is appreciated:
+// BTC: 3Dj9jfGuJ861oEH7kA1zpgMssPw2PYF7Gq
+// ETH and USDT: 0xc8645305ab8c08f08bcbc89c020b63362527f771
+
+study(title="[bjb] BTC%LS - BTC Long Vs Shorts Oscillator (with %), by @BlueJayBird", shorttitle="BTC%LS", format = format.price, precision = 2, scale = scale.right)
+
+// ------------------------------------------- Inputs
+// Longs and Shorts
+btc_ls_enable = input(defval = true, title = "Enable LS Lines", type = input.bool)
+btc_ls_enable_fill = input(defval = false, title = "Enable LS Fill", type = input.bool)
+btc_ls_length = input(defval = 14, title = "LS Length")
+btc_longs_sec = security("BITFINEX:BTCUSDLONGS", resolution = "", expression = close)
+btc_shorts_sec = security("BITFINEX:BTCUSDSHORTS", resolution = "", expression = close)
+// Dominance
+btc_ls_enable_dominance = input(defval = false, title = "Enable %LS", type = input.bool)
+btc_ls_enable = input(defval = true, title = "Enable %LS Fill", type = input.bool)
+btc_ls_length_percent = input(defval = 75, title = "%LS Length")
+
+// ------------------------------------------- Calculations
+// Longs and Shorts
+btc_ls_longs = rsi(btc_longs_sec, btc_ls_length)
+btc_ls_shorts = rsi(btc_shorts_sec, btc_ls_length)
+// Dominance
+btc_ls_sum = btc_ls_longs + btc_ls_shorts
+btc_ls_percent = rsi(btc_ls_sum, btc_ls_length)
+btc_ls_green = (btc_ls_percent >= 50 ) ? 1 : 0
+btc_ls_red = (btc_ls_percent < 50) ? -1 : 0
+btc_ls_green_sum = sum(btc_ls_green, btc_ls_length_percent)
+btc_ls_green_percent = (btc_ls_green_sum * 100) / btc_ls_length_percent
+btc_ls_red_sum = sum(btc_ls_red, btc_ls_length_percent)
+btc_ls_red_percent = (btc_ls_red_sum * 100) / btc_ls_length_percent
+
+// ------------------------------------------- Plotting
+bgc_btc_ls_fill = iff(btc_ls_green_percent > -btc_ls_red_percent and btc_ls_enable_fill, color.new(color.green, 90), color.new(color.red, 90))
+// Longs and Shorts
+btc_ls_longs_plot = plot(btc_ls_enable ? btc_ls_longs : na, title = "Longs", color = color.green, linewidth = 1, style = plot.style_line, editable = true)
+btc_ls_shorts_plot =plot(btc_ls_enable ? btc_ls_shorts : na, title = "Shorts", color = color.red, linewidth = 1, style = plot.style_line, editable = true)
+fill(btc_ls_longs_plot, btc_ls_shorts_plot, bgc_btc_ls_fill, editable = true)
+btc_ls_enable_fill
+// Dominance
+btc_ls_long_percent_plot = plot(btc_ls_enable_dominance ? btc_ls_green_percent : na, color = color.green, transp = 0, editable = true, title = "%Longs")
+btc_ls_short_percent_plot = plot(btc_ls_enable_dominance ? -btc_ls_red_percent : na, color = color.red, transp = 0, editable = true, title = "%Shorts")
+fill(btc_ls_long_percent_plot, btc_ls_short_percent_plot, bgc_btc_ls_fill, editable = true)
