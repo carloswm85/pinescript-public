@@ -1,3 +1,28 @@
 https://www.tradingview.com/script/csU5QLc0-bjb-BTC-LS-BTC-Long-Vs-Shorts-Oscillator-with/
 
-Descripción:
+Código fuente del indicador en GitHub: https://github.com/carloswm85/pinescript...
+
+BTC%LS quiere decir "Bitcoin Long Vs Shorts Sentiment Oscillator (with additional percental representation)"
+Traducido como: "Oscilador Sentimental para BTC en Longs y Shorts (con representación adicional en porcentajes)"
+
+Descripción breve:
+- Los valores en la grafica principla están indexados sobre 100 en el eje de las y para mejor ploteo. La pantalla muestra los valores del día en que BTC alcanzó los 60 (3/13/2021).
+- Este es un oscilador del tipo sentimental.
+- Este oscilador plotea en un solo panel los valores de los símbolos de TradingView, BITFINEX:BTCUSDLONGS y BITFINEX:BTCUSDSHORTS.
+- TENÉ PRESENTE: El cálculo que hace uso de la fórmula del RSI hace posible que los límites de la gráfica queden en el rango de 0 a 10 y no se salgan de ahí, pero no te dice la cantidad real de BTC involucrados. Visualmente es un muy buen indicador, pero para una mejor información vas a tener que mirar los gráficos originales para Longs y Shorts.
+
+Descripción del ploteo:
+1) Plotea BITFINEX:BTCUSDLONGS, el color por defecto de ploteo es verde.
+2) Plotea BITFINEX:BTCUSDSHORTS, el color por defecto de ploteo es rojo.
+3) Los cruces de línea producen un cambio en el relleno entre líneas.
+
+Características adicionales:
+4) Hay una representación proporcional en porcentaje de los valores totales (longs y shorts). Verde para Longs y rojo para Shorts. El relleno está permitido.
+
+Información adicional:
+BTCUSDSHORTS y BTCUSDLONGS representan la cantidas de BTC en short o long en cuentas margin.
+
+Créditos:
+Este indicador es totalmente original mío. Lo pensé, y lo programé desde cero. Si te sirvió a tu trading y por ende obtuviste ganancias, por favor, considera hacer una donación de incentivo a las siguientes direcciones así hago más indicadores y estrategias.
+// BTC: 3Dj9jfGuJ861oEH7kA1zpgMssPw2PYF7Gq (SegWit compatible, P2SH)
+// ETH and USDT: 0xc8645305ab8c08f08bcbc89c020b63362527f771
