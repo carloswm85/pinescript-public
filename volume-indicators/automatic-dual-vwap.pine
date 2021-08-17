@@ -1,0 +1,138 @@
+//@version=4
+study(title="swVWAP", shorttitle="swVWAP", overlay=true, resolution="")
+
+anchor_s = input(defval = "Session", title="sVWAP: Anchor Period", type=input.string, 
+anchor_w = input(defval = "Week", title="wVWAP: Anchor Period", type=input.string, 
+
+
+options=["Session", "Week", "Month", "Quarter", "Earnings", "Year", "Decade", "Century"])
+
+src = input(title = "Source", type = input.source, defval = hlc3)
+offset = input(0, title="Offset")
+
+hideonDWM_s = input(false, title="sVWAP: Hide on 1D or Above")
+showBands_s = input(true, title="sVWAP: Calculate Standard Deviation Bands")
+stdevMult1_s = input(1.0, title="sVWAP: Stdev Bands #1 Multiplier")
+stdevMult2_s = input(2.0, title="sVWAP: Stdev Bands #2 Multiplier")
+
+hideonDWM_w = input(false, title="wVWAP: Hide on 1D or Above")
+showBands_w = input(true, title="sVWAP: Calculate Standard Deviation Bands")
+stdevMult1_w = input(1.0, title="sVWAP: Stdev Bands #1 Multiplier")
+stdevMult2_w = input(2.0, title="sVWAP: Stdev Bands #2 Multiplier")
+
+// Calculations sWAP
+timeChange(period) =>
+	change(time(period))
+
+EPS = security("ESD_FACTSET:" + syminfo.prefix + ";" + syminfo.ticker + ";EARNINGS", "1", time, lookahead=true)
+
+isNewPeriod = anchor == "Earnings" ? change(EPS) :
+ na(src[1]) ? true :
+ anchor == "Session" ? timeChange("D") :
+ anchor == "Week" ? timeChange("W") :
+ anchor == "Month" ? timeChange("M") :
+ anchor == "Quarter" ? timeChange("3M") :
+ anchor == "Year" ? timeChange("12M") :
+ anchor == "Decade" ? timeChange("12M") and year % 10 == 0 :
+ anchor == "Century" ? timeChange("12M") and year % 100 == 0 :
+ false
+
+float vwapValue = na
+if not (hideonDWM and timeframe.isdwm)
+	sumSrc = src * volume
+	sumVol = volume
+	sumSrc := isNewPeriod ? sumSrc : sumSrc + sumSrc[1]
+	sumVol := isNewPeriod ? sumVol : sumVol + sumVol[1]
+	vwapValue := sumSrc / sumVol
+
+vwapStdev() =>
+	var int vwapLen = na
+	var float vwapSum = na
+	var float vwapStdev = na
+	var vwapArray = array.new_float(na, na)
+	vwapDividend = 0.0
+
+	if isNewPeriod
+		vwapLen := 0
+		vwapSum := 0
+		vwapStdev := 0
+		array.clear(vwapArray)
+
+	vwapLen := vwapLen + 1
+	vwapSum := vwapSum + vwapValue
+	vwapMean = vwapSum / vwapLen
+
+	if showBands
+		array.push(vwapArray, vwapValue)
+		for i=0 to vwapLen-1
+			vwapDividend := vwapDividend + pow(array.get(vwapArray, i)-vwapMean, 2)
+		vwapStdev := sqrt(vwapDividend/vwapLen)
+
+// Calculations wVWAP
+timeChange(period) =>
+	change(time(period))
+
+EPS = security("ESD_FACTSET:" + syminfo.prefix + ";" + syminfo.ticker + ";EARNINGS", "1", time, lookahead=true)
+
+isNewPeriod = anchor == "Earnings" ? change(EPS) :
+ na(src[1]) ? true :
+ anchor == "Session" ? timeChange("D") :
+ anchor == "Week" ? timeChange("W") :
+ anchor == "Month" ? timeChange("M") :
+ anchor == "Quarter" ? timeChange("3M") :
+ anchor == "Year" ? timeChange("12M") :
+ anchor == "Decade" ? timeChange("12M") and year % 10 == 0 :
+ anchor == "Century" ? timeChange("12M") and year % 100 == 0 :
+ false
+
+float vwapValue = na
+if not (hideonDWM and timeframe.isdwm)
+	sumSrc = src * volume
+	sumVol = volume
+	sumSrc := isNewPeriod ? sumSrc : sumSrc + sumSrc[1]
+	sumVol := isNewPeriod ? sumVol : sumVol + sumVol[1]
+	vwapValue := sumSrc / sumVol
+
+vwapStdev() =>
+	var int vwapLen = na
+	var float vwapSum = na
+	var float vwapStdev = na
+	var vwapArray = array.new_float(na, na)
+	vwapDividend = 0.0
+
+	if isNewPeriod
+		vwapLen := 0
+		vwapSum := 0
+		vwapStdev := 0
+		array.clear(vwapArray)
+
+	vwapLen := vwapLen + 1
+	vwapSum := vwapSum + vwapValue
+	vwapMean = vwapSum / vwapLen
+
+	if showBands
+		array.push(vwapArray, vwapValue)
+		for i=0 to vwapLen-1
+			vwapDividend := vwapDividend + pow(array.get(vwapArray, i)-vwapMean, 2)
+		vwapStdev := sqrt(vwapDividend/vwapLen)
+
+// PLOTTING - Done
+plot(vwapValue_s, title="sVWAP", offset=offset)
+plot(vwapValue_w, title="wVWAP", offset=offset)
+
+std_s = vwapStdev()
+std_w = vwapStdev()
+// sVWAP
+lowerBand1_s = plot(showBands_s ? vwapValue_s - std_s * stdevMult1_s : na, title="sVWAP: Lower Band 1", color=color.yellow, display=display.none, offset=offset)
+upperBand1_s = plot(showBands_s ? vwapValue_s + std_s * stdevMult1_s : na, title="sVWAP: Upper Band 1", color=color.yellow, display=display.none, offset=offset)
+lowerBand2_s = plot(showBands_s ? vwapValue_s - std_s * stdevMult2_s : na, title="sVWAP: Lower Band 2", color=color.green, offset=offset)
+upperBand2_s = plot(showBands_s ? vwapValue_s + std_s * stdevMult2_s : na, title="sVWAP: Upper Band 2", color=color.green, offset=offset)
+fill(upperBand1_s, lowerBand1_s, title="sVWAP: Bands 1 Fill", color=showBands?color.yellow:na, transp=100)
+fill(upperBand2_s, lowerBand2_s, title="sVWAP: Bands 2 Fill", color=showBands?color.green:na, transp=95)
+// wVWAP
+lowerBand1_w = plot(showBands_w ? vwapValue_w - std_w * stdevMult1_w : na, title="wVWAP: Lower Band 1", color=color.yellow, display=display.none, offset=offset)
+upperBand1_w = plot(showBands_w ? vwapValue_w + std_w * stdevMult1_w : na, title="wVWAP: Upper Band 1", color=color.yellow, display=display.none, offset=offset)
+lowerBand2_w = plot(showBands_w ? vwapValue_w - std_w * stdevMult2_w : na, title="wVWAP: Lower Band 2", color=color.green, offset=offset)
+upperBand2_w = plot(showBands_w ? vwapValue_w + std_w * stdevMult2_w : na, title="wVWAP: Upper Band 2", color=color.green, offset=offset)
+fill(upperBand1_w, lowerBand1_w, title="wVWAP: Bands 1 Fill", color=showBands?color.yellow:na, transp=100)
+fill(upperBand2_w, lowerBand2_w, title="wVWAP: Bands 2 Fill", color=showBands?color.green:na, transp=95)
