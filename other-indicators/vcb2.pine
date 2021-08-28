@@ -1,0 +1,128 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © BlueJayBird
+//@version=4
+study(title="VCB2 - Visual Candlestick Blender 2", shorttitle="VCB2", overlay=true)
+
+// Style
+thickness = 2
+transp_ma = 40
+transp_fill = 90
+transp_fill_20 = 80
+securityGap = barmerge.gaps_off 
+
+
+// ------------------------------------- Functions
+// No repainting of the chart, in real time
+_NRPrt(tf,src) => 
+    security(syminfo.tickerid, tf, src[barstate.isconfirmed ? 0 : 1], barmerge.gaps_off) // tf = timeframe, src = source
+
+// ---------------------------- Enablers VC
+enable1 = input(defval=true,  title="VCB1", group="Enablers")
+enable2 = input(defval=false, title="VCB2", group="Enablers")
+enable3 = input(defval=false, title="VCB3", group="Enablers")
+enable4 = input(defval=false, title="VCB4", group="Enablers")
+enableOpen = input(defval=false, title="Enable Open Value", group="Enablers")
+// enableForward = input(defval=false, title="Current Clandlestick", group="Enablers")
+
+// ------------------------------------- Resolutions VCB
+res1 = input(title="VCB1", defval = "60", type = input.resolution, group="Resolutions")
+res2 = input(title="VCB2", defval = "240", type = input.resolution, group="Resolutions")
+res3 = input(title="VCB3", defval = "D", type = input.resolution, group="Resolutions")
+res4 = input(title="VCB4", defval = "W", type = input.resolution, group="Resolutions")
+
+// ------------------------------------- Other Settings VCB
+vcb_offset = input(title="Offset", defval = 1, type = input.integer, group="Other Settings")
+
+
+// ======================================= //
+// -----------------> VCB1 <-------------- //
+// ======================================= //
+
+// ------------------------------------- VCB1 Calculations
+// Securities
+// [open_value, high_value, low_value, close_value] = 
+o1 = _NRPrt(res1, open)
+h1 = _NRPrt(res1, high)
+l1 = _NRPrt(res1, low)
+c1 = _NRPrt(res1, close)
+
+// ------------------------------------- VCB1 Plotting
+// Colors
+palette1 = c1 > o1 ? color.lime : color.red
+paletteTraslucid1 = c1 > o1 ? color.new(color.lime, 50) : color.new(color.red, 50)
+dashedWorkaround1 = bar_index % 2 == 0 ? palette1 : paletteTraslucid1
+// Plot
+plot(enable1 and enableOpen ? o1 : na, title="O1", color=palette1, linewidth=thickness + 1, transp=transp_ma, editable=true, style=plot.style_stepline, offset=vcb_offset)
+plot(enable1 ? h1 : na, title="H1", color=dashedWorkaround1, linewidth=thickness, transp=70, editable=true, style=plot.style_stepline, offset=vcb_offset)
+plot(enable1 ? l1 : na, title="L1", color=dashedWorkaround1, linewidth=thickness, transp=70, editable=true, style=plot.style_stepline, offset=vcb_offset)
+plot(enable1 ? c1 : na, title="C1", color=palette1, linewidth=thickness + 1, transp=transp_ma, editable=true, style=plot.style_stepline, offset=vcb_offset)
+
+
+// ======================================= //
+// -----------------> VCB2 <-------------- //
+// ======================================= //
+
+// ------------------------------------- VCB2 Calculations
+// Securities
+o2 = _NRPrt(res2, open)
+h2 = _NRPrt(res2, high)
+l2 = _NRPrt(res2, low)
+c2 = _NRPrt(res2, close)
+
+// ------------------------------------- VCB2 Plotting
+// Colors
+palette2 = c2 > o2 ? color.aqua : color.yellow
+paletteTraslucid2 = c2 > o2 ? color.new(color.aqua, 50) : color.new(color.yellow, 50)
+dashedWorkaround2 = bar_index % 2 == 0 ? palette2 : paletteTraslucid2
+// Plot
+plot(enable2 and enableOpen ? o2 : na, title="O2", color=palette2, linewidth=thickness + 1, transp=transp_ma, editable=true, style=plot.style_stepline, offset=vcb_offset)
+plot(enable2 ? h2 : na, title="H2", color=dashedWorkaround2, linewidth=thickness, transp=70, editable=true, style=plot.style_stepline, offset=vcb_offset)
+plot(enable2 ? l2 : na, title="L2", color=dashedWorkaround2, linewidth=thickness, transp=70, editable=true, style=plot.style_stepline, offset=vcb_offset)
+plot(enable2 ? c2 : na, title="C2", color=palette2, linewidth=thickness + 1, transp=transp_ma, editable=true, style=plot.style_stepline, offset=vcb_offset)
+
+
+// ======================================= //
+// -----------------> VCB3 <-------------- //
+// ======================================= //
+
+// ------------------------------------- VCB3 Calculations
+// Securities
+o3 = _NRPrt(res3, open)
+h3 = _NRPrt(res3, high)
+l3 = _NRPrt(res3, low)
+c3 = _NRPrt(res3, close)
+
+// ------------------------------------- VCB3 Plotting
+// Colors
+palette3 = c3 > o3 ? color.orange : color.fuchsia
+paletteTraslucid3 = c3 > o3 ? color.new(color.orange, 50) : color.new(color.fuchsia, 50)
+dashedWorkaround3 = bar_index % 2 == 0 ? palette3 : paletteTraslucid3
+// Plot
+plot(enable3 and enableOpen ? o3 : na, title="O3", color=palette3, linewidth=thickness + 1, transp=transp_ma, editable=true, style=plot.style_stepline, offset=vcb_offset)
+plot(enable3 ? h3 : na, title="H3", color=dashedWorkaround3, linewidth=thickness, transp=70, editable=true, style=plot.style_stepline, offset=vcb_offset)
+plot(enable3 ? l3 : na, title="L3", color=dashedWorkaround3, linewidth=thickness, transp=70, editable=true, style=plot.style_stepline, offset=vcb_offset)
+plot(enable3 ? c3 : na, title="C3", color=palette3, linewidth=thickness + 1, transp=transp_ma, editable=true, style=plot.style_stepline, offset=vcb_offset)
+
+
+// ======================================= //
+// -----------------> VCB4 <-------------- //
+// ======================================= //
+
+// ------------------------------------- VCB4 Calculations
+// Securities
+o4 = _NRPrt(res4, open)
+h4 = _NRPrt(res4, high)
+l4 = _NRPrt(res4, low)
+c4 = _NRPrt(res4, close)
+
+// ------------------------------------- VCB4 Plotting
+// Colors
+palette4 = c4 > o4 ? color.yellow : color.orange
+paletteTraslucid4 = c4 > o4 ? color.new(color.yellow, 50) : color.new(color.orange, 50)
+dashedWorkaround4 = bar_index % 2 == 0 ? palette4 : paletteTraslucid4
+// Plot
+plot(enable4 and enableOpen ? o4 : na, title="O4", color = palette4, linewidth = thickness + 1, transp = transp_ma, editable = true, style = plot.style_stepline, offset=vcb_offset)
+plot(enable4 ? h4 : na, title="H4", color = dashedWorkaround4, linewidth = thickness, transp = 70, editable = true, style = plot.style_stepline, offset=vcb_offset)
+plot(enable4 ? l4 : na, title="L4", color = dashedWorkaround4, linewidth = thickness, transp = 70, editable = true, style = plot.style_stepline, offset=vcb_offset)
+plot(enable4 ? c4 : na, title="C4", color = palette4, linewidth = thickness + 1, transp = transp_ma, editable = true, style = plot.style_stepline, offset=vcb_offset)
+

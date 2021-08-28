@@ -35,6 +35,7 @@ timeChange(period) =>
 enable_vwap_s = input(true, title="Enable sVWAP", group="VWAP Enabling")
 enable_vwap_w = input(true, title="Enable wVWAP", group="VWAP Enabling")
 enable_vwap_m = input(true, title="Enable mVWAP", group="VWAP Enabling")
+enable_pvwap = input(true, title="Enable pVWAP", group="VWAP Enabling")
 // --------------------------------------------------------- SESSION
 // - Session VWAP Settings
 hideonDWM_s = input(true, title="Hide sVWAP on 1D or Above", group="Session VWAP Settings")
@@ -185,15 +186,23 @@ lowerBand_m = plot(lowerBandValue_m, title="mLB", color=color_vwap_m, offset=off
 fill(upperBand_m, lowerBand_m, title="mBF", color= showBands_m ? color_vwap_m_95 : na) // Monthly Band Filler
 
 
-// Test
-// UTCTimeInput   = input(defval = "2100-2101", title = "Market Opening Time", type = input.session)
-UTCTimeInput = input('2100-2101', title="Get Open Value at Time?") //set the time at which you would like to get the open value
+// ======================================= //
+// ---> pVWAP Previous VWAP at close <---- //
+// ======================================= //
 
-OpenValueTime = time("1", UTCTimeInput)
+// No repainting at real time
+_NRPrt(tf,src) => 
+    security(syminfo.tickerid, tf, src[barstate.isconfirmed ? 0 : 1], barmerge.gaps_off)
 
-var OpenPA = 0.0
-if OpenValueTime
-    if not OpenValueTime[1]
-        OpenPA := vwapValue_s[1]
+// Inputs    
+pvwap_resolution = input("D", title="Enable pVWAP", group="pVWAP Settings")
+pvwap_source = time
 
-plot(not OpenValueTime ? OpenPA : na, title="Open at time", color=color.red, linewidth=1, style=plot.style_linebr)
+// Calculations
+security_pvwap = _NRPrt(pvwap_resolution, pvwap_source)
+security_pvwap_diff = change(security_pvwap) ? 1 : 0
+value = valuewhen(security_pvwap_diff, vwapValue_s[1], 0)
+
+// Plotting
+color_pvwap = color.new(#e91e63, 20)
+plot(enable_pvwap ? value : na, title = "pVWAP", color = color_pvwap, style = plot.style_cross, linewidth = 1)

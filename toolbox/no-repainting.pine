@@ -1,0 +1,44 @@
+// ======================================= //
+// -----------> No RePainting <----------- //
+// ======================================= //
+
+_NRP(tf, src) => 
+    security(syminfo.tickerid, tf, src[barstate.isconfirmed ? 0 : 1], barmerge.gaps_on)
+
+// Barstate confirmed is false in real time
+// Juuust on candle roll over that one split second it’s true
+// so we update.
+// Then go back to last bar, but we are on the new ba
+_NRPrt(tf,src) => 
+    security(syminfo.tickerid, tf, src[barstate.isconfirmed ? 0 : 1], barmerge.gaps_off)
+
+// Formulas by: https://www.tradingview.com/u/Bjorgum/
+
+
+// ======================================= //
+// ---------------> Example <------------- //
+// ======================================= //
+
+// https://pastebin.com/Jyxrj0QJ
+
+
+// ======================================= //
+// ---------------> Comments <------------- //
+// ======================================= //
+
+// So these functions I have you only update when the close is in the books
+// Right when and only when it happens
+
+// here is the full version of the two functions i use most regularly.
+// nrp can be whatever you want
+// i use it for no re paint, then one i say rt or "real time"
+// gaps off version it gives you "steps" in data only changing on new bar of an HTF
+// but it gives you data the whole time
+// the other, gaps off, it avergaes price. it is na in the real time bar
+// so only has values on close
+// only use this one for display only
+
+// all calcs shoulf be done in a script with gaps off
+// here is an example of where you would use both for accuracy, while providing visual appeal
+
+// You can run some experiments. Plot both, one with the offset and one without. Go to like a 1min and let it run page open while you work. Then come back and watch the two plot lines separate. Then hit refresh and see what happens
