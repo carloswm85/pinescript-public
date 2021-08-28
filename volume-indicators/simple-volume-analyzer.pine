@@ -99,11 +99,16 @@ vol_ma_resistance_4 = sma(volume_sec * volume_res4_multiplier, volume_smoother_c
 
 
 // ------------------------------------------- Plotting
+// MA Colors
+colorLV = color.new(#673ab7, 40)
+colorMV = color.new(#9c27b0, 30)
+colorHV = color.new(#e91e63, 50)
+colorUHV = color.new(#ffffff, 50)
 // MA (Volume Moving Averages) → Low, Mid, High, and Ultra-High Volumen
-plot(series = volume_enable_ma and volume_resolution == "" ? vol_ma_resistance_1 : na, title = "LV", color = color.new(color.yellow, 40), linewidth = 1, style = plot.style_line, editable = true)
-plot(series = volume_enable_ma and volume_resolution == "" ? vol_ma_resistance_2 : na, title = "MV", color = color.new(color.orange, 30), linewidth = 1, style = plot.style_line, editable = true)
-plot(series = volume_enable_ma and volume_resolution == "" ? vol_ma_resistance_3 : na, title = "HV", color = color.new(color.red, 50), linewidth = 1, style = plot.style_line, editable = true)
-plot(series = volume_enable_ma and volume_resolution == "" ? vol_ma_resistance_4 : na, title = "UHV", color = color.new(color.white, 50), linewidth = 1, style = plot.style_line, editable = true, display = display.none)
+plot(series = volume_enable_ma and volume_resolution == "" ? vol_ma_resistance_4 : na, title = "UHV", color = colorUHV, linewidth = 1, style = plot.style_line, editable = true, display = display.none)
+plot(series = volume_enable_ma and volume_resolution == "" ? vol_ma_resistance_3 : na, title = "HV", color = colorHV, linewidth = 1, style = plot.style_line, editable = true)
+plot(series = volume_enable_ma and volume_resolution == "" ? vol_ma_resistance_2 : na, title = "MV", color = colorMV, linewidth = 1, style = plot.style_line, editable = true)
+plot(series = volume_enable_ma and volume_resolution == "" ? vol_ma_resistance_1 : na, title = "LV", color = colorLV, linewidth = 1, style = plot.style_line, editable = true)
 
 // Volume Bars
 volume_data = volume_enable_reversed ? volume_sec_close >= volume_sec_open ? volume_sec : volume_sec * -1 : volume_sec // For switching bearish volume upside down from the 0 level
@@ -118,5 +123,3 @@ plotshape(enable_demand_signals and (barstate.ishistory or drawOnRealTime) and v
 // Zero Line (base line)
 zero_line_color = color.new(color.silver, 50)
 hline(price = 0, title = "Zero Line", color = zero_line_color, linestyle = hline.style_solid, linewidth = 1, editable = true)
-
-

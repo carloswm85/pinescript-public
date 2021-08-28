@@ -1,0 +1,95 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © BlueJayBird
+
+// TODO: Make the script automatic. For example, do not display session VWAP at timeframes equal or higer than 1D.
+
+//@version=4
+study(title="Sigle VWAP", shorttitle="VWAP", overlay=true, resolution="")
+
+// ========================================================= Functions
+computeVWAP(src, isNewPeriod, stDevMultiplier) =>
+	var float sumSrcVol = na
+	var float sumVol = na
+    var float sumSrcSrcVol = na
+    
+	sumSrcVol := isNewPeriod ? src * volume : src * volume + sumSrcVol[1]
+	sumVol := isNewPeriod ? volume : volume + sumVol[1]
+	// sumSrcSrcVol calculates the dividend of the equation that is later used to calculate the standard deviation
+	sumSrcSrcVol := isNewPeriod ? volume * pow(src, 2) : volume * pow(src, 2) + sumSrcSrcVol[1]
+	
+	_vwap = sumSrcVol / sumVol
+	variance = sumSrcSrcVol / sumVol - pow(_vwap, 2)
+	variance := variance < 0 ? 0 : variance
+	stDev = sqrt(variance)
+	
+	lowerBand = _vwap - stDev * stDevMultiplier
+	upperBand = _vwap + stDev * stDevMultiplier
+	
+	[_vwap, lowerBand, upperBand]
+
+timeChange(period) =>
+	change(time(period))
+
+
+// ========================================================= Inputs
+enable_vwap_s = input(true, title="Enable sVWAP", group="VWAP Enabling")
+// --------------------------------------------------------- SESSION
+// - Session VWAP Settings
+hideonDWM_s = input(true, title="Hide sVWAP on 1D or Above", group="Session VWAP Settings")
+var anchor_s = input(defval = "Session", title="Anchor Period", type=input.string, options=["Session", "Week", "Month", "Quarter", "Year", "Decade", "Century", "Earnings", "Dividends", "Splits"], group="Session VWAP Settings")
+src_s = input(title = "Source", type = input.source, defval = hlc3, group="Session VWAP Settings")
+offset_s = input(0, title="Offset", group="Session VWAP Settings")
+// - Standard Deviation Bands Settings
+showBands_s = input(false, title="Calculate Bands", group="Session VWAP Settings")
+stdevMult_s = input(1.0, title="Bands Multiplier", group="Session VWAP Settings")
+
+
+// ========================================================= External Variables
+// SESSION
+new_earnings_s = earnings(syminfo.tickerid, earnings.actual, barmerge.gaps_on, barmerge.lookahead_on)
+new_dividends_s = dividends(syminfo.tickerid, dividends.gross, barmerge.gaps_on, barmerge.lookahead_on)
+new_split_s = splits(syminfo.tickerid, splits.denominator, barmerge.gaps_on, barmerge.lookahead_on)
+
+
+// ========================================================= Main Condition
+// SESSION
+isNewPeriod_s = anchor_s == "Earnings" ? new_earnings_s :
+ anchor_s == "Dividends" ? new_dividends_s :
+ anchor_s == "Splits" ? new_split_s :
+ na(src_s[1]) ? true :
+ anchor_s == "Session" ? timeChange("D") :
+ anchor_s == "Week" ? timeChange("W") :
+ anchor_s == "Month" ? timeChange("M") :
+ anchor_s == "Quarter" ? timeChange("3M") :
+ anchor_s == "Year" ? timeChange("12M") :
+ anchor_s == "Decade" ? timeChange("12M") and year % 10 == 0 :
+ anchor_s == "Century" ? timeChange("12M") and year % 100 == 0 :
+ false
+
+
+// ========================================================= Variables
+// SESSION
+float vwapValue_s = na
+float std_s = na
+float upperBandValue_s = na
+float lowerBandValue_s = na
+
+
+// ========================================================= Condition
+// SESSION
+if not (hideonDWM_s and timeframe.isdwm)
+    [_vwap, bottom, top] = computeVWAP(src_s, isNewPeriod_s, stdevMult_s)
+    vwapValue_s := _vwap
+    upperBandValue_s := showBands_s ? top : na
+    lowerBandValue_s := showBands_s ? bottom : na
+
+
+// ========================================================= Plotting
+// Colors
+color_vwap_s = color.new(#e91e63, 50) // Ruby color
+color_vwap_s_95 = color.new(#e91e63, 95)
+// SESSION
+plot(enable_vwap_s ? vwapValue_s : na, title="s", color=color_vwap_s, linewidth=3, offset=offset_s)
+upperBand_s = plot(upperBandValue_s, title="sUB", color=color_vwap_s, offset=offset_s, display=display.none) // Session Upper Band
+lowerBand_s = plot(lowerBandValue_s, title="sLB", color=color_vwap_s, offset=offset_s, display=display.none) // Session Lower Band
+fill(upperBand_s, lowerBand_s, title="sBF", color= showBands_s ? color_vwap_s_95 : na) // Session Band Filler

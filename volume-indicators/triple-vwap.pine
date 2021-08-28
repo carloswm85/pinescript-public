@@ -1,0 +1,199 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © BlueJayBird
+
+// TODO: Make the script automatic. For example, do not display session VWAP at timeframes equal or higer than 1D.
+
+//@version=4
+study(title="Triple VWAP", shorttitle="3V", overlay=true, resolution="")
+
+// ========================================================= Functions
+computeVWAP(src, isNewPeriod, stDevMultiplier) =>
+	var float sumSrcVol = na
+	var float sumVol = na
+    var float sumSrcSrcVol = na
+    
+	sumSrcVol := isNewPeriod ? src * volume : src * volume + sumSrcVol[1]
+	sumVol := isNewPeriod ? volume : volume + sumVol[1]
+	// sumSrcSrcVol calculates the dividend of the equation that is later used to calculate the standard deviation
+	sumSrcSrcVol := isNewPeriod ? volume * pow(src, 2) : volume * pow(src, 2) + sumSrcSrcVol[1]
+	
+	_vwap = sumSrcVol / sumVol
+	variance = sumSrcSrcVol / sumVol - pow(_vwap, 2)
+	variance := variance < 0 ? 0 : variance
+	stDev = sqrt(variance)
+	
+	lowerBand = _vwap - stDev * stDevMultiplier
+	upperBand = _vwap + stDev * stDevMultiplier
+	
+	[_vwap, lowerBand, upperBand]
+
+timeChange(period) =>
+	change(time(period))
+
+
+// ========================================================= Inputs
+enable_vwap_s = input(true, title="Enable sVWAP", group="VWAP Enabling")
+enable_vwap_w = input(true, title="Enable wVWAP", group="VWAP Enabling")
+enable_vwap_m = input(true, title="Enable mVWAP", group="VWAP Enabling")
+// --------------------------------------------------------- SESSION
+// - Session VWAP Settings
+hideonDWM_s = input(true, title="Hide sVWAP on 1D or Above", group="Session VWAP Settings")
+var anchor_s = input(defval = "Session", title="Anchor Period", type=input.string, options=["Session", "Week", "Month", "Quarter", "Year", "Decade", "Century", "Earnings", "Dividends", "Splits"], group="Session VWAP Settings")
+src_s = input(title = "Source", type = input.source, defval = hlc3, group="Session VWAP Settings")
+offset_s = input(0, title="Offset", group="Session VWAP Settings")
+// - Standard Deviation Bands Settings
+showBands_s = input(false, title="Calculate Bands", group="Session VWAP Settings")
+stdevMult_s = input(1.0, title="Bands Multiplier", group="Session VWAP Settings")
+// --------------------------------------------------------- WEEKLY
+// - Weekly VWAP Settings
+hideonDWM_w = input(true, title="Hide wVWAP on 1D or Above", group="Weekly VWAP Settings")
+var anchor_w = input(defval = "Week", title="Anchor Period", type=input.string, options=["Session", "Week", "Month", "Quarter", "Year", "Decade", "Century", "Earnings", "Dividends", "Splits"], group="Weekly VWAP Settings")
+src_w = input(title = "Source", type = input.source, defval = hlc3, group="Weekly VWAP Settings")
+offset_w = input(0, title="Offset", group="Weekly VWAP Settings")
+// - Standard Deviation Bands Settings
+showBands_w = input(false, title="Calculate Bands", group="Weekly VWAP Settings")
+stdevMult_w = input(1.0, title="Bands Multiplier", group="Weekly VWAP Settings")
+// --------------------------------------------------------- MONTHLY
+// - Monthly VWAP Settings
+hideonDWM_m = input(false, title="Hide mVWAP on 1D or Above", group="Monthly VWAP Settings")
+var anchor_m = input(defval = "Month", title="Anchor Period", type=input.string, options=["Session", "Week", "Month", "Quarter", "Year", "Decade", "Century", "Earnings", "Dividends", "Splits"], group="Monthly VWAP Settings")
+src_m = input(title = "Source", type = input.source, defval = hlc3, group="Monthly VWAP Settings")
+offset_m = input(0, title="Offset", group="Monthly VWAP Settings")
+// - Standard Deviation Bands Settings
+showBands_m = input(false, title="Calculate Bands", group="Monthly VWAP Settings")
+stdevMult_m = input(1.0, title="Bands Multiplier", group="Monthly VWAP Settings")
+
+
+// ========================================================= External Variables
+// SESSION
+new_earnings_s = earnings(syminfo.tickerid, earnings.actual, barmerge.gaps_on, barmerge.lookahead_on)
+new_dividends_s = dividends(syminfo.tickerid, dividends.gross, barmerge.gaps_on, barmerge.lookahead_on)
+new_split_s = splits(syminfo.tickerid, splits.denominator, barmerge.gaps_on, barmerge.lookahead_on)
+// WEEKLY
+new_earnings_w = earnings(syminfo.tickerid, earnings.actual, barmerge.gaps_on, barmerge.lookahead_on)
+new_dividends_w = dividends(syminfo.tickerid, dividends.gross, barmerge.gaps_on, barmerge.lookahead_on)
+new_split_w = splits(syminfo.tickerid, splits.denominator, barmerge.gaps_on, barmerge.lookahead_on)
+// MONTHLY
+new_earnings_m = earnings(syminfo.tickerid, earnings.actual, barmerge.gaps_on, barmerge.lookahead_on)
+new_dividends_m = dividends(syminfo.tickerid, dividends.gross, barmerge.gaps_on, barmerge.lookahead_on)
+new_split_m = splits(syminfo.tickerid, splits.denominator, barmerge.gaps_on, barmerge.lookahead_on)
+
+
+// ========================================================= Main Condition
+// SESSION
+isNewPeriod_s = anchor_s == "Earnings" ? new_earnings_s :
+ anchor_s == "Dividends" ? new_dividends_s :
+ anchor_s == "Splits" ? new_split_s :
+ na(src_s[1]) ? true :
+ anchor_s == "Session" ? timeChange("D") :
+ anchor_s == "Week" ? timeChange("W") :
+ anchor_s == "Month" ? timeChange("M") :
+ anchor_s == "Quarter" ? timeChange("3M") :
+ anchor_s == "Year" ? timeChange("12M") :
+ anchor_s == "Decade" ? timeChange("12M") and year % 10 == 0 :
+ anchor_s == "Century" ? timeChange("12M") and year % 100 == 0 :
+ false
+// WEEKLY
+isNewPeriod_w = anchor_w == "Earnings" ? new_earnings_w :
+ anchor_w == "Dividends" ? new_dividends_w :
+ anchor_w == "Splits" ? new_split_w :
+ na(src_w[1]) ? true :
+ anchor_w == "Session" ? timeChange("D") :
+ anchor_w == "Week" ? timeChange("W") :
+ anchor_w == "Month" ? timeChange("M") :
+ anchor_w == "Quarter" ? timeChange("3M") :
+ anchor_w == "Year" ? timeChange("12M") :
+ anchor_w == "Decade" ? timeChange("12M") and year % 10 == 0 :
+ anchor_w == "Century" ? timeChange("12M") and year % 100 == 0 :
+ false
+// MONTHLY
+isNewPeriod_m = anchor_m == "Earnings" ? new_earnings_m :
+ anchor_m == "Dividends" ? new_dividends_m :
+ anchor_m == "Splits" ? new_split_m :
+ na(src_m[1]) ? true :
+ anchor_m == "Session" ? timeChange("D") :
+ anchor_m == "Week" ? timeChange("W") :
+ anchor_m == "Month" ? timeChange("M") :
+ anchor_m == "Quarter" ? timeChange("3M") :
+ anchor_m == "Year" ? timeChange("12M") :
+ anchor_m == "Decade" ? timeChange("12M") and year % 10 == 0 :
+ anchor_m == "Century" ? timeChange("12M") and year % 100 == 0 :
+ false
+
+
+// ========================================================= Variables
+// SESSION
+float vwapValue_s = na
+float std_s = na
+float upperBandValue_s = na
+float lowerBandValue_s = na
+// WEEKLY
+float vwapValue_w = na
+float std_w = na
+float upperBandValue_w = na
+float lowerBandValue_w = na
+// MONTHLY
+float vwapValue_m = na
+float std_m = na
+float upperBandValue_m = na
+float lowerBandValue_m = na
+
+
+// ========================================================= Condition
+// SESSION
+if not (hideonDWM_s and timeframe.isdwm)
+    [_vwap, bottom, top] = computeVWAP(src_s, isNewPeriod_s, stdevMult_s)
+    vwapValue_s := _vwap
+    upperBandValue_s := showBands_s ? top : na
+    lowerBandValue_s := showBands_s ? bottom : na
+// WEEKLY
+if not (hideonDWM_w and timeframe.isdwm)
+    [_vwap, bottom, top] = computeVWAP(src_w, isNewPeriod_w, stdevMult_w)
+    vwapValue_w := _vwap
+    upperBandValue_w := showBands_w ? top : na
+    lowerBandValue_w := showBands_w ? bottom : na
+// MONTHLY
+if not (hideonDWM_m and timeframe.isdwm)
+    [_vwap, bottom, top] = computeVWAP(src_m, isNewPeriod_m, stdevMult_m)
+    vwapValue_m := _vwap
+    upperBandValue_m := showBands_m ? top : na
+    lowerBandValue_m := showBands_m ? bottom : na
+
+
+// ========================================================= Plotting
+// Colors
+color_vwap_s = color.new(#e91e63, 50) // Ruby color
+color_vwap_s_95 = color.new(#e91e63, 95)
+color_vwap_w = color.new(#4caf50, 50) // Fruit Salad color
+color_vwap_w_95 = color.new(#4caf50, 95)
+color_vwap_m = color.new(#2962ff, 50) // Royal Blue color
+color_vwap_m_95 = color.new(#2962ff, 95)
+// SESSION
+plot(enable_vwap_s ? vwapValue_s : na, title="s", color=color_vwap_s, linewidth=3, offset=offset_s)
+upperBand_s = plot(upperBandValue_s, title="sUB", color=color_vwap_s, offset=offset_s, display=display.none) // Session Upper Band
+lowerBand_s = plot(lowerBandValue_s, title="sLB", color=color_vwap_s, offset=offset_s, display=display.none) // Session Lower Band
+fill(upperBand_s, lowerBand_s, title="sBF", color= showBands_s ? color_vwap_s_95 : na) // Session Band Filler
+// WEEKLY
+plot(enable_vwap_w ? vwapValue_w : na, title="w", color=color_vwap_w, linewidth=3, offset=offset_w)
+upperBand_w = plot(upperBandValue_w, title="wUB", color=color_vwap_w, offset=offset_w, display=display.none) // Weekly Upper Band
+lowerBand_w = plot(lowerBandValue_w, title="wLB", color=color_vwap_w, offset=offset_w, display=display.none) // Weekly Lower Band
+fill(upperBand_w, lowerBand_w, title="wBF", color= showBands_w ? color_vwap_w_95 : na) // Weekly Band Filler
+// MONTHLY
+plot(enable_vwap_m ? vwapValue_m : na, title="m", color=color_vwap_m,linewidth=3, offset=offset_m)
+upperBand_m = plot(upperBandValue_m, title="mUB", color=color_vwap_m, offset=offset_m, display=display.none) // Monthly Upper Band
+lowerBand_m = plot(lowerBandValue_m, title="mLB", color=color_vwap_m, offset=offset_m, display=display.none) // Monthly Lower Band
+fill(upperBand_m, lowerBand_m, title="mBF", color= showBands_m ? color_vwap_m_95 : na) // Monthly Band Filler
+
+
+// Test
+// UTCTimeInput   = input(defval = "2100-2101", title = "Market Opening Time", type = input.session)
+UTCTimeInput = input('2100-2101', title="Get Open Value at Time?") //set the time at which you would like to get the open value
+
+OpenValueTime = time("1", UTCTimeInput)
+
+var OpenPA = 0.0
+if OpenValueTime
+    if not OpenValueTime[1]
+        OpenPA := vwapValue_s[1]
+
+plot(not OpenValueTime ? OpenPA : na, title="Open at time", color=color.red, linewidth=1, style=plot.style_linebr)

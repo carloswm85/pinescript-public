@@ -1,0 +1,31 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © allanster
+
+//@version=4
+study(title = "How To Show Vertical Lines", overlay = true, scale = scale.none)
+
+// === Method Background Color ===
+openTime   = input(defval = "2100-2101", title = "Market Opening Time", type = input.session)
+isOpen     = time(timeframe.period, openTime + ":1234567") // ":1234567" is days of week market is open
+
+
+// === Used By Both Methods Below ===
+openHour   = input(defval = 22, title = "Market Opening Hour",   type = input.integer, minval = 0, maxval = 23)
+openMinute = input(defval = 00, title = "Market Opening Minute", type = input.integer, minval = 0, maxval = 59)
+isHour     = hour == openHour
+isMinute   = minute == openMinute
+
+// === Method Line ===
+// credit: @midtownsk8rguy -> https://www.tradingview.com/script/EmTkvfCM-vline-Function-for-Pine-Script-v4-0/
+showLine   = input(defval = true, title = "Show Method Line by midtownsk8rguy", type = input.bool)
+vline(BarIndex, Color, LineStyle, LineWidth) => // Verticle Line Function, ≈50-54 lines maximum allowable per indicator
+    // return = line.new(BarIndex,   0.0, BarIndex,     100.0, xloc.bar_index, extend.both, Color, LineStyle, LineWidth) // Suitable for study(overlay=false) and RSI, Stochastic, etc...
+    // return = line.new(BarIndex,  -1.0, BarIndex,       1.0, xloc.bar_index, extend.both, Color, LineStyle, LineWidth) // Suitable for study(overlay=false) and +/-1.0 oscillators
+    return = line.new(BarIndex, low - tr, BarIndex, high + tr, xloc.bar_index, extend.both, Color, LineStyle, LineWidth) // Suitable for study(overlay=true)
+if(showLine and isHour and isMinute)
+    vline(bar_index, #FF8000ff, line.style_dashed, 1) // Variable assignment not required
+
+// === Method Plot ===
+// credit: @PineCoders -> https://www.pinecoders.com/faq_and_code/#how-can-i-plot-vertical-lines-on-a-chart
+showPlot   = input(defval = false, title = "Show Method Plot by PineCoders", type = input.bool)
+plot(showPlot and isHour and isMinute ? 10e20 : na, color = color.silver, linewidth = 2, style = plot.style_histogram, transp = 50)

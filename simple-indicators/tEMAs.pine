@@ -1,0 +1,31 @@
+// This source code is subject to the terms of the Osozilla Public License 2.0 at https://mozilla.org/OsPL/2.0/
+// © BlueJayBird, author
+// @version=4
+
+study(title = "[bjb] tEMAs - Triple Exponential Moving Averages, by BlueJayBird", shorttitle = "tEMAs", precision = 2, format = format.price, overlay = true)
+
+// ------------------------------------------- Inputs
+ema_enable = input(title = "Enable EMAs 20/50/200", defval = true, type = input.bool)
+ema_enable_fill_2050 = input(title = "Enable EMAs Fill 20/50", defval = true, type = input.bool)
+ema_enable_fill_50200 = input(title = "Enable EMAs Fill 50/200", defval = false, type = input.bool)
+ema_source = input(title = "EMAs Source", defval = low, type = input.source)
+ema_resolution = input(title = "EMAs Resolution", defval = "", type = input.resolution)
+ema_security_20 = security(symbol = syminfo.tickerid, resolution = ema_resolution, expression = ema(ema_source, 20))
+ema_security_50 = security(symbol = syminfo.tickerid, resolution = ema_resolution, expression = ema(ema_source, 50))
+ema_security_200 = security(symbol = syminfo.tickerid, resolution = ema_resolution, expression = ema(ema_source, 200))
+
+// ------------------------------------------- Colors
+color_upwards_price = #26a69a // Classic Green
+color_downwards_price = #ef5350 // Classic Red
+
+// ------------------------------------------- Plotting
+ema20_plot = plot(series = ema_enable ? ema_security_20 : na, title = "EMA20", color = color.aqua, linewidth = 2, transp = 30)
+ema50_plot = plot(series = ema_enable ? ema_security_50 : na, title = "EMA50", color = color.orange, linewidth = 2, transp = 30)
+ema200_plot = plot(series = ema_enable ? ema_security_200 : na, title = "EMA200", color = color.fuchsia, linewidth = 2, transp = 30)
+
+// Fill
+ema_fill_20_50 = ema_enable_fill_2050 ? (ema_security_20 >= ema_security_50 ? color_upwards_price : color_downwards_price) : na
+ema_fill_50_200 = ema_enable_fill_50200 ? (ema_security_50 >= ema_security_200 ? color_upwards_price : color_downwards_price) : na
+fill(plot1 = ema20_plot, plot2 = ema50_plot, color = ema_fill_20_50, transp = 80, title = "EMAs 20/50 Fill")
+fill(plot1 = ema50_plot, plot2 = ema200_plot, color = ema_fill_50_200, transp = 80, title = "EMAs 50/200 Fill")
+
