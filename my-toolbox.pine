@@ -1,0 +1,48 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © BlueJayBird
+
+//@version=4
+
+study(title="[bjb] My Toolbox", shorttitle="mTx", overlay=true)
+
+// ========================================================================= //
+// ----------------------------> Vertical Lines <--------------------------- //
+// ========================================================================= //
+showLine   = input(defval = true, title = "Show Method Line by midtownsk8rguy", type = input.bool, group="Vertical lines 4h")
+openHour   = input(defval = 22, title = "Market Opening Hour",   type = input.integer, minval = 0, maxval = 23, group="Vertical lines 4h")
+openMinute = input(defval = 00, title = "Market Opening Minute", type = input.integer, minval = 0, maxval = 59, group="Vertical lines 4h")
+isHour     = hour == openHour
+isMinute   = minute == openMinute
+vline(BarIndex, Color, LineStyle, LineWidth) => // Verticle Line Function, ≈50-54 lines maximum allowable per indicator
+    // return = line.new(BarIndex,   0.0, BarIndex,     100.0, xloc.bar_index, extend.both, Color, LineStyle, LineWidth) // Suitable for study(overlay=false) and RSI, Stochastic, etc...
+    // return = line.new(BarIndex,  -1.0, BarIndex,       1.0, xloc.bar_index, extend.both, Color, LineStyle, LineWidth) // Suitable for study(overlay=false) and +/-1.0 oscillators
+    return = line.new(BarIndex, low - tr, BarIndex, high + tr, xloc.bar_index, extend.both, Color, LineStyle, LineWidth) // Suitable for study(overlay=true)
+if(showLine and isHour and isMinute)
+    vline(bar_index, #FF8000ff, line.style_dashed, 1) // Variable assignment not required
+
+
+// ========================================================================= //
+// --------------------------> Horizontal Lines <--------------------------- //
+// ========================================================================= //
+
+hlc_resolution = input("D", type=input.resolution)
+
+high_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=high)
+low_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=low)
+close_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=close)
+
+trim_line_time = '0000-0001'
+trim_line_plot = time("1", trim_line_time)
+
+var float high_security_value = na
+var float low_security_value = na
+var float close_security_value = na
+
+if trim_line_plot[1]
+    high_security_value := high_security
+    low_security_value := low_security
+    close_security_value := close_security
+
+plot(not trim_line_plot ? high_security_value : na, title="h", style=plot.style_linebr, linewidth=1, color=color.red)
+plot(not trim_line_plot ? low_security_value : na, title="l", style=plot.style_linebr, linewidth=1, color=color.lime)
+plot(not trim_line_plot ? close_security_value : na, title="c", style=plot.style_linebr, linewidth=1, color=color.orange)

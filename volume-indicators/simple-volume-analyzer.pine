@@ -4,48 +4,47 @@
 
 study(title="[bjb] SVA - Simple Volume Analyzer, by @BlueJayBird", shorttitle="SVA", format = format.volume, precision = 0, scale = scale.right, overlay = false)
 
-// ------------------------------------------- Inputs
+// ================================================= //
+// --------> SVA - Simple Volume Analyzer <--------- //
+// ================================================= //
+
+// ========================================================= Inputs
 // Main inputs
-volume_enable = input(defval = true, title = "Enable Volume", type = input.bool)
-volume_enable_ma = input(defval = true, title = "Enable Volume MAs (VMA)", type = input.bool)
+volume_enable = input(defval = true, title = "Volume", type = input.bool, group="Enablers")
+volume_enable_ma = input(defval = true, title = "Volume MAs (VMA)", type = input.bool, group="Enablers")
 
 // Signals
-enable_supply_signals = input(defval = false, title = "Enable Supply Zone Signals (SZS)", type = input.bool)
-enable_demand_signals = input(defval = false, title = "Enable Demand Zone Signals (DZS)", type = input.bool)
+enable_supply_signals = input(defval = false, title = "Supply Zone Signals (SZS)", type = input.bool, group="Enablers")
+enable_demand_signals = input(defval = false, title = "Demand Zone Signals (DZS)", type = input.bool, group="Enablers")
 
 // Multipliers 
-volume_res1_multiplier = input(defval = 1.1, title = "Low Volume (LV) Multiplier", type = input.float)
-volume_res2_multiplier = input(defval = 1.5, title = "Medium Volume (MV) Multiplier", type = input.float)
-volume_res3_multiplier = input(defval = 2.1, title = "High Volume (HV) Multiplier", type = input.float)
-volume_res4_multiplier = input(defval = 7.5, title = "Ultra-High Volume (UHV) Multiplier", type = input.float)
+volume_res1_multiplier = input(defval = 1.1, title = "Low Volume (LV)", type = input.float, group="Multipliers")
+volume_res2_multiplier = input(defval = 1.5, title = "Medium Volume (MV)", type = input.float, group="Multipliers")
+volume_res3_multiplier = input(defval = 2.1, title = "High Volume (HV)", type = input.float, group="Multipliers")
+volume_res4_multiplier = input(defval = 7.5, title = "Ultra-High Volume (UHV)", type = input.float, group="Multipliers")
 // Smoothers
-volume_smoother_a = input(defval = 20, title = "VMA Smoother A (LV, MV, HV)", type = input.integer)
-volume_smoother_b = input(defval = 5, title = "VMA Smoother B (LV, MV, HV)", type = input.integer)
-volume_smoother_c = input(defval = 200, title = "VMA Smoother C (UHV)", type = input.integer)
-// (a) and (b) modify the behavior of the MAs, hence the modify the color of the volume bars
+volume_smoother_a = input(defval = 20, title = "VMA Sa (LV, MV, HV)", type = input.integer, group="Smoothers")
+volume_smoother_b = input(defval = 5, title = "VMA Sb  (LV, MV, HV)", type = input.integer, group="Smoothers")
+volume_smoother_c = input(defval = 200, title = "VMA Sc (UHV)", type = input.integer, group="Smoothers")
+// (Sa) and (Sb) are smoother for LV, MV and HV MAs, they are used for modifying the color of the volume bars
+// (Sc) is the smoother for the UHV, is less reactive than the others.
 // I suggest you to keep the default values. I've extensively tested them.
 
-
-// Miscellanea 1
-volume_enable_vlr = input(defval = false, title = "Enable Volume Linebreak Resolution (VLR)", type = input.bool)
-volume_resolution_vlr = input(defval = "", title = "VLR Resolution", type = input.resolution)
-volume_enable_reversed = input(defval = false, title = "Switch Down Bearish Volume Bars", type = input.bool)
-
-// Miscellanea 2
+// Miscellanea
+volume_enable_reversed = input(defval = false, title = "Switch Down Bearish Volume Bars", type = input.bool, group="Enablers")
 volume_resolution = ""
 volume_sec = security(symbol = syminfo.tickerid, resolution = volume_resolution, expression = volume)
-volume_sec_vlr = security(symbol = syminfo.tickerid, resolution = volume_resolution_vlr, expression = volume)
 volume_sec_close = security(symbol = syminfo.tickerid, resolution = volume_resolution, expression = close)
 volume_sec_open = security(symbol = syminfo.tickerid, resolution = volume_resolution, expression = open)
 drawOnRealTime = true
 
 
-// ------------------------------------------- Colors
+// ========================================================= Colors
 color_upwards_price = #26a69a // Classic Green
 color_downwards_price = #ef5350 // Classic Red
 
 
-// ------------------------------------------- Functions
+// ========================================================= Functions
 // Bar Colors
 vol_color(ma, ma2, ma3, ma4) =>
     if volume_sec_close >= volume_sec_open
@@ -90,7 +89,7 @@ label_color(ma2, ma3, ma4) =>
         color_upwards_price
 
 
-// ------------------------------------------- Calculations
+// ========================================================= Calculations
 vol_ma_resistance_1 = ema(sma(volume_sec * volume_res1_multiplier, volume_smoother_a), volume_smoother_b)
 vol_ma_resistance_2 = ema(vwma(volume_sec * volume_res2_multiplier, volume_smoother_a), volume_smoother_b)
 vol_ma_resistance_3 = ema(vwma(volume_sec * volume_res3_multiplier, volume_smoother_a), volume_smoother_b)
@@ -98,7 +97,7 @@ volume_res4_multiplier := timeframe.period == "60" ? 4.1 : 7.5
 vol_ma_resistance_4 = sma(volume_sec * volume_res4_multiplier, volume_smoother_c)
 
 
-// ------------------------------------------- Plotting
+// ========================================================= Plotting
 // MA Colors
 colorLV = color.new(#673ab7, 40)
 colorMV = color.new(#9c27b0, 30)
@@ -113,7 +112,6 @@ plot(series = volume_enable_ma and volume_resolution == "" ? vol_ma_resistance_1
 // Volume Bars
 volume_data = volume_enable_reversed ? volume_sec_close >= volume_sec_open ? volume_sec : volume_sec * -1 : volume_sec // For switching bearish volume upside down from the 0 level
 plot(series = volume_enable ? volume_data : na, title = "Vol", color = vol_color(vol_ma_resistance_1, vol_ma_resistance_2, vol_ma_resistance_3, vol_ma_resistance_4), linewidth = 3, style = plot.style_histogram, editable = true) // Main volume plotting, color is defined using the moving avarages as triggering color change levels
-plot(series = volume_enable_vlr ? volume_sec_vlr : na, title = "VLR", color = color.new(color.lime, 20), linewidth = 1, style = plot.style_linebr, editable = true) // Plotting Volume Linebreak Resolution
 
 // Primary Signals (only)
 shape_style = volume_enable_reversed ? shape.labelup : shape.labeldown
@@ -123,3 +121,50 @@ plotshape(enable_demand_signals and (barstate.ishistory or drawOnRealTime) and v
 // Zero Line (base line)
 zero_line_color = color.new(color.silver, 50)
 hline(price = 0, title = "Zero Line", color = zero_line_color, linestyle = hline.style_solid, linewidth = 1, editable = true)
+
+
+// ================================================= //
+// ------------------> Custom Alarms <-------------- //
+// ================================================= //
+// - Send out an alert if volume meets conditions.
+
+// Alert Functions
+sva_hv_alert(vol, ma3) =>
+    iff (vol >= ma3, true, false)
+
+sva_uhv_alert(vol, ma4) =>
+    iff (vol >= ma4, true, false)
+
+truncate(number, decimalPlaces) =>
+    factor = pow(10, decimalPlaces)
+    int(number * factor) / factor
+
+// Check conditions
+hv_alert    = sva_hv_alert  (volume_sec, vol_ma_resistance_3) 
+uhv_alert   = sva_uhv_alert (volume_sec, vol_ma_resistance_4) 
+
+// Conditional Alerts
+alertcondition(hv_alert,    title="High Volume CA",         message="(HV) {{ticker}} | Vol: {{volume}} | TF: {{interval}} | PR: {{close}}")
+alertcondition(uhv_alert,   title="Ultra High Volume CA",   message="(UHV) {{ticker}} | Vol: {{volume}} | TF: {{interval}} | PR: {{close}}")
+
+// Programatic Alerts
+if hv_alert
+    // Trigger the alert the first time it occurs during the real-time bar.
+    vol_str = tostring(truncate(volume, 1)) 
+    price_str = tostring(truncate(close, 3)) 
+    alert("(HV) " + vol_str + " volume | " + price_str + " price"  , alert.freq_once_per_bar)
+
+if uhv_alert
+    // Trigger the alert the first time it occurs during the real-time bar.
+    vol_str = tostring(truncate(volume, 1)) 
+    price_str = tostring(truncate(close, 3)) 
+    alert("(UHV) " + vol_str + " volume | " + price_str + " price"  , alert.freq_once_per_bar)
+
+
+// ================================================= //
+// -----------------------> TODO <------------------ //
+// ================================================= //
+// Demand Alarm
+// Supply Alarm
+
+// REMEMBER TO SEND ANY FEEDBACK YOU MAY HAVE.
