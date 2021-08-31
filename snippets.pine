@@ -1,0 +1,19 @@
+
+// ======================================= //
+// --------> 3VWAPs Triple VWAP <--------- //
+// ======================================= //
+
+// ========================================================= Inputs
+enable_vwap_s = input(true, title="Enable sVWAP", group="VWAP Enabling")
+enable_vwap_w = input(true, title="Enable wVWAP", group="VWAP Enabling")
+enable_vwap_m = input(true, title="Enable mVWAP", group="VWAP Enabling")
+enable_pvwap = input(true, title="Enable pVWAP", group="VWAP Enabling")
+// --------------------------------------------------------- SESSION
+// - Session VWAP Settings
+hideonDWM_s = input(true, title="Hide sVWAP on 1D or Above", group="Session VWAP Settings")
+var anchor_s = input(defval = "Session", title="Anchor Period", type=input.string, options=["Session", "Week", "Month", "Quarter", "Year", "Decade", "Century", "Earnings", "Dividends", "Splits"], group="Session VWAP Settings")
+src_s = input(title = "Source", type = input.source, defval = hlc3, group="Session VWAP Settings")
+offset_s = input(0, title="Offset", group="Session VWAP Settings")
+// - Standard Deviation Bands Settings
+showBands_s = input(false, title="Calculate Bands", group="Session VWAP Settings")
+stdevMult_s = input(1.0, title="Bands Multiplier", group="Session VWAP Settings")

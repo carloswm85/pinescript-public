@@ -123,11 +123,7 @@ zero_line_color = color.new(color.silver, 50)
 hline(price = 0, title = "Zero Line", color = zero_line_color, linestyle = hline.style_solid, linewidth = 1, editable = true)
 
 
-// ================================================= //
-// ------------------> Custom Alarms <-------------- //
-// ================================================= //
-// - Send out an alert if volume meets conditions.
-
+// ========================================================= Custom Alarms (Send out an alert if this candle meets our conditions)
 // Alert Functions
 sva_hv_alert(vol, ma3) =>
     iff (vol >= ma3, true, false)
@@ -135,36 +131,21 @@ sva_hv_alert(vol, ma3) =>
 sva_uhv_alert(vol, ma4) =>
     iff (vol >= ma4, true, false)
 
-truncate(number, decimalPlaces) =>
-    factor = pow(10, decimalPlaces)
-    int(number * factor) / factor
-
-// Check conditions
+// Conditions
 hv_alert    = sva_hv_alert  (volume_sec, vol_ma_resistance_3) 
 uhv_alert   = sva_uhv_alert (volume_sec, vol_ma_resistance_4) 
 
 // Conditional Alerts
-alertcondition(hv_alert,    title="High Volume CA",         message="(HV) {{ticker}} | Vol: {{volume}} | TF: {{interval}} | PR: {{close}}")
-alertcondition(uhv_alert,   title="Ultra High Volume CA",   message="(UHV) {{ticker}} | Vol: {{volume}} | TF: {{interval}} | PR: {{close}}")
+alertcondition(hv_alert,    title="High Volume Alert!",         message="HV {{ticker}} | Vol: {{volume}} | TF: {{interval}} | Vol2: {{volume}}")
+alertcondition(uhv_alert,   title="Ultra High Volume Alert!",   message="UHV for XXX")
 
-// Programatic Alerts
+// Alerts
 if hv_alert
     // Trigger the alert the first time it occurs during the real-time bar.
-    vol_str = tostring(truncate(volume, 1)) 
-    price_str = tostring(truncate(close, 3)) 
-    alert("(HV) " + vol_str + " volume | " + price_str + " price"  , alert.freq_once_per_bar)
+    alert("Volume alert " + tostring(Volume) + " triggered.", alert.freq_once_per_bar)
 
-if uhv_alert
-    // Trigger the alert the first time it occurs during the real-time bar.
-    vol_str = tostring(truncate(volume, 1)) 
-    price_str = tostring(truncate(close, 3)) 
-    alert("(UHV) " + vol_str + " volume | " + price_str + " price"  , alert.freq_once_per_bar)
+plotchar(hv_alert, "hv", "▲", location.top, size = size.tiny)
 
-
-// ================================================= //
-// -----------------------> TODO <------------------ //
-// ================================================= //
+// ========================================================= TODO:
 // Demand Alarm
 // Supply Alarm
-
-// REMEMBER TO SEND ANY FEEDBACK YOU MAY HAVE.

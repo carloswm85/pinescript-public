@@ -4,9 +4,14 @@
 // TODO: Make the script automatic. For example, do not display session VWAP at timeframes equal or higer than 1D.
 
 //@version=4
-study(title="Triple VWAP", shorttitle="3V", overlay=true, resolution="")
+study(title="Triple VWAP", shorttitle="s3V", overlay=true, resolution="")
 
-// ========================================================= Functions
+
+// ======================================= //
+// -------------> Functions <------------- //
+// ======================================= //
+
+// Computing VWAP
 computeVWAP(src, isNewPeriod, stDevMultiplier) =>
 	var float sumSrcVol = na
 	var float sumVol = na
@@ -27,9 +32,18 @@ computeVWAP(src, isNewPeriod, stDevMultiplier) =>
 	
 	[_vwap, lowerBand, upperBand]
 
+// Getting time changes
 timeChange(period) =>
 	change(time(period))
 
+// No repainting at real time
+_NRPrt(tf,src) => 
+    security(syminfo.tickerid, tf, src[barstate.isconfirmed ? 0 : 1], barmerge.gaps_off)
+
+
+// ======================================= //
+// --------> 3VWAPs Triple VWAP <--------- //
+// ======================================= //
 
 // ========================================================= Inputs
 enable_vwap_s = input(true, title="Enable sVWAP", group="VWAP Enabling")
@@ -190,19 +204,15 @@ fill(upperBand_m, lowerBand_m, title="mBF", color= showBands_m ? color_vwap_m_95
 // ---> pVWAP Previous VWAP at close <---- //
 // ======================================= //
 
-// No repainting at real time
-_NRPrt(tf,src) => 
-    security(syminfo.tickerid, tf, src[barstate.isconfirmed ? 0 : 1], barmerge.gaps_off)
-
-// Inputs    
-pvwap_resolution = input("D", title="Enable pVWAP", group="pVWAP Settings")
+// ========================================================= Inputs
+pvwap_resolution = input(defval="D", type=input.resolution, title="Resolution", group="pVWAP Settings")
 pvwap_source = time
 
-// Calculations
+// ========================================================= Calculations
 security_pvwap = _NRPrt(pvwap_resolution, pvwap_source)
 security_pvwap_diff = change(security_pvwap) ? 1 : 0
 value = valuewhen(security_pvwap_diff, vwapValue_s[1], 0)
 
-// Plotting
+// ========================================================= Plotting
 color_pvwap = color.new(#e91e63, 20)
 plot(enable_pvwap ? value : na, title = "pVWAP", color = color_pvwap, style = plot.style_cross, linewidth = 1)
