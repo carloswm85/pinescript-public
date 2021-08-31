@@ -8,6 +8,10 @@ study(title="[bjb] My Toolbox", shorttitle="myTx", overlay=true)
 // 1. Vertical Lines (every 1D and 4h)
 // 2. Horizontal Lines (for HCL)
 
+// READINGS:
+// Extend lines into the future: https://www.pinecoders.com/faq_and_code/#how-can-i-draw-lines-or-labels-into-the-future
+// Indicator repainting: https://www.tradingview.com/pine-script-docs/en/v4/essential/Indicator_repainting.html
+
 
 // ========================================================================= //
 // ----------------------------> Vertical Lines <--------------------------- //
