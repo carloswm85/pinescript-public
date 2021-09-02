@@ -34,13 +34,13 @@ open_hour   = 00
 open_minute = 00
 
 // ----------------------------------------------------------------- Conditions
-// Time interval
+// Time Interval
 is_hour     = hour==open_hour
 is_minute   = minute==open_minute
 is_hour_4h 	= iff(hour==4 or hour==8 or hour==12 or hour==16 or hour==20, true, false)
-// Timeframe visibility
-visibility_4h = iff(timeframe.period=="60" or timeframe.period=="240" or timeframe.period=="D" or timeframe.period=="W", false, true) // Visible if timeframe is less than 60min
-visibility_1D = iff(timeframe.period=="D" or timeframe.period=="W" or timeframe.period=="M", false, true) // Visible if timeframe is less than 1D
+// Timeframe Visibility, only visible at those tf
+visibility_vline_4h = iff(timeframe.period=="1" or timeframe.period=="3" or timeframe.period=="5" or timeframe.period=="15" or timeframe.period=="30", true, false)
+visibility_vline_1D = iff(visibility_4h or timeframe.period=="60" or timeframe.period=="240", true, false)
 
 // ---------------------------------------------------------- (pseudo) Plotting
 // Colors
@@ -48,11 +48,11 @@ vl_1D_default_color =  color.new(color.yellow, 20)
 vl_4h_default_color =  color.new(color.orange, 40)
 
 // Variable assignment not required, not plotting
-if(enable_line_1D and is_hour and is_minute and visibility_1D)
+if(enable_line_1D and is_hour and is_minute and visibility_vline_1D)
     // TODO: How do I change the color line for 'start of week' and 'start of month'? At 1D vline.
     vline(bar_index, vl_1D_default_color, line.style_dashed, 2) 
     
-if(enable_line_4h and is_hour_4h and is_minute and visibility_4h)
+if(enable_line_4h and is_hour_4h and is_minute and visibility_vline_4h)
     vline(bar_index, vl_4h_default_color, line.style_dotted, 2) 
 
 
