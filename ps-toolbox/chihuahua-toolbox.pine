@@ -2,7 +2,7 @@
 // © BlueJayBird
 
 //@version=4
-study(title="[bjb] My Toolbox", shorttitle="myTx", overlay=true)
+study(title="[bjb] Chihuahua Toolbox", shorttitle="chTx", overlay=true)
 
 // CONTENT
 // 1. Vertical Lines (every 1D and 4h)
@@ -81,7 +81,7 @@ if enable_lines_ltf
 // High, Low, and Close, as horizontal lines from the selected resolution. Default is 1D.
 
 // --------------------------------------------------------------------- Inputs
-enable_daily_hlc   = input(defval=false, title="Enable Daily HLC", type=input.bool, group="Daily HLC")
+enable_daily_hlc   = input(defval=true, title="Enable Daily HLC", type=input.bool, group="Daily HLC")
 hlc_resolution = input(defval="D", title="Resolution", type=input.resolution, group="Daily HLC")
 
 high_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=high)
@@ -102,6 +102,6 @@ if trim_line_plot[1]
     close_security_value	:= close_security
 
 // ------------------------------------------------------------------- Plotting
-plot(not trim_line_plot and enable_daily_hlc ? high_security_value : na, title="h", style=plot.style_linebr, linewidth=1, color=color.red)
-plot(not trim_line_plot and enable_daily_hlc ? low_security_value : na, title="l", style=plot.style_linebr, linewidth=1, color=color.lime)
-plot(not trim_line_plot and enable_daily_hlc ? close_security_value : na, title="c", style=plot.style_linebr, linewidth=1, color=color.orange)
+plot(not trim_line_plot and enable_daily_hlc ? high_security_value : na, title="high", style=plot.style_linebr, linewidth=1, color=color.red)
+plot(not trim_line_plot and enable_daily_hlc ? low_security_value : na, title="low", style=plot.style_linebr, linewidth=1, color=color.lime)
+plot(not trim_line_plot and enable_daily_hlc ? close_security_value : na, title="close", style=plot.style_linebr, linewidth=1, color=color.orange)
