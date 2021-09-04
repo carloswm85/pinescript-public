@@ -4,9 +4,13 @@
 //@version=4
 study(title="[bjb] Chihuahua Toolbox", shorttitle="chTx", overlay=true)
 
+// TODO: Add supply and demand signals.
+
 // CONTENT
 // 1. Vertical Lines (every 1D and 4h)
-// 2. Horizontal Lines (for HCL)
+// 2. Previous Daily HLC 
+// 3. Classic EMAs
+// 4. RSI Signals
 
 // READINGS:
 // Extend lines into the future: https://www.pinecoders.com/faq_and_code/#how-can-i-draw-lines-or-labels-into-the-future
@@ -19,7 +23,6 @@ study(title="[bjb] Chihuahua Toolbox", shorttitle="chTx", overlay=true)
 // Displays vertical lines at the designated bar time(s).
 // In this case, the selected timeframes are 4h and 1D
 // TODO: Add automatization for timeframes larger than 4h and 1D, do not display those vertical lines at HTF.
-// TODO: Add line for start of week.
 
 // ------------------------------------------------------------------ Functions
 vline(BarIndex, Color, LineStyle, LineWidth) => // Verticle Line Function, ≈50-54 lines maximum allowable per indicator
@@ -109,70 +112,61 @@ plot(not trim_line_plot and enable_previous_hlc ? close_security_value : na, tit
 
 
 // ========================================================================= //
-// -----------------------------------> EMAs <------------------------------ //
+// ---------------------------> Classic EMAs <------------------------------ //
 // ========================================================================= //
 // 3 Exponential Moving Averages, they are classic EMAs 20/50/200
 
 // --------------------------------------------------------------------- Inputs
-ema_enable = input(title="Enable EMAs a/b/c", defval=true, type=input.bool, group="EMAs Settings")
-ema_enable_fill_a_b = input(title="Enable EMAs Fill a/b", defval=true, type=input.bool, group="EMAs Settings")
-ema_enable_fill_b_c = input(title="Enable EMAs Fill b/c", defval=false, type=input.bool, group="EMAs Settings")
+ema_enable = input(title="Enable EMAs 20/50/200", defval=true, type=input.bool, group="EMAs Settings")
+ema_enable_fill_a_b = input(title="Enable EMAs Fill 20/50", defval=true, type=input.bool, group="EMAs Settings")
+ema_enable_fill_b_c = input(title="Enable EMAs Fill 50/200", defval=false, type=input.bool, group="EMAs Settings")
 ema_source = input(title="Source", defval=low, type=input.source, group="EMAs Settings")
 ema_resolution = input(title="Resolution", defval="", type=input.resolution, group="EMAs Settings")
 
 // ----------------------------------------------------------------- Securities
-ema_security_a = security(symbol=syminfo.tickerid, resolution=ema_resolution, expression=ema(ema_source, 20))
-ema_security_b = security(symbol=syminfo.tickerid, resolution=ema_resolution, expression=ema(ema_source, 50))
-ema_security_c = security(symbol=syminfo.tickerid, resolution=ema_resolution, expression=ema(ema_source, 200))
+ema_security_20 = security(symbol=syminfo.tickerid, resolution=ema_resolution, expression=ema(ema_source, 20))
+ema_security_50 = security(symbol=syminfo.tickerid, resolution=ema_resolution, expression=ema(ema_source, 50))
+ema_security_200 = security(symbol=syminfo.tickerid, resolution=ema_resolution, expression=ema(ema_source, 200))
 
 // --------------------------------------------------------------------- Colors
 color_upwards_price = #26a69a // Classic Green
 color_downwards_price = #ef5350 // Classic Red
 
 // ------------------------------------------------------------------- Plotting
-ema_a_plot = plot(series=ema_enable ? ema_security_a : na, title="a", color=color.aqua, linewidth=2, transp=30)
-ema_b_plot = plot(series=ema_enable ? ema_security_b : na, title="b", color=color.orange, linewidth=2, transp=30)
-ema_c_plot = plot(series=ema_enable ? ema_security_c : na, title="c", color=color.fuchsia, linewidth=2, transp=30)
+ema_a_plot = plot(series=ema_enable ? ema_security_20 : na, title="EMA20", color=color.aqua, linewidth=2, transp=30)
+ema_b_plot = plot(series=ema_enable ? ema_security_50 : na, title="EMA50", color=color.orange, linewidth=2, transp=30)
+ema_c_plot = plot(series=ema_enable ? ema_security_200 : na, title="EMA200", color=color.fuchsia, linewidth=2, transp=30)
 
 // ----------------------------------------------------------------------- Fill
-ema_fill_a_b = ema_enable_fill_a_b ? (ema_security_a >= ema_security_b ? color_upwards_price : color_downwards_price) : na
-ema_fill_b_c = ema_enable_fill_b_c ? (ema_security_b >= ema_security_c ? color_upwards_price : color_downwards_price) : na
+ema_fill_a_b = ema_enable_fill_a_b ? (ema_security_20 >= ema_security_50 ? color_upwards_price : color_downwards_price) : na
+ema_fill_b_c = ema_enable_fill_b_c ? (ema_security_50 >= ema_security_200 ? color_upwards_price : color_downwards_price) : na
 fill(plot1 = ema_a_plot, plot2 = ema_b_plot, color = ema_fill_a_b, transp = 80, title = "EMAs 20/50 Fill")
 fill(plot1 = ema_b_plot, plot2 = ema_c_plot, color = ema_fill_b_c, transp = 80, title = "EMAs 50/200 Fill")
 
 
 // ========================================================================= //
-// ----------------------> Extra Moving Average <--------------------------- //
+// ----------------------------> RSI Signals <------------------------------ //
 // ========================================================================= //
-// 1 single moving average setteable several different MAs types.
 
-// ------------------------------------------------------------------ Functions
-smma(_source, _len) =>
-    var float _value_smma = na
-    localSMA = sma(_source, _len)
-    _value_smma := na(_value_smma[1]) ? localSMA : (_value_smma[1] * (_len - 1) + _source) / _len
+//------------------------------------------------------------------- Constants
+transparency_rsi_signals = 20
+draw_ort = true // "Draw On Candles Yet To Close", on real time
 
 // --------------------------------------------------------------------- Inputs
-extra_ma_enable = input(title="Enable", defval=true, type=input.bool, group="Extra MA Settings")
-extra_ma_type = input(title="Type", defval="MA", options=["EMA", "MA", "RMA", "SMMA", "VWMA", "WMA"], group="Extra MA Settings")
-extra_ma_source = input(title="Source", defval=low, type=input.source, group="Extra MA Settings")
-extra_ma_length = input(defval=9,  title = "Length", group="Extra MA Settings")
-extra_ma_resolution = input(title="Resolution", defval="", type=input.resolution, group="Extra MA Settings")
-// ------------------------------------------------------------------ Variables
-var float extra_ma = na
+enable_rsi_signals = input(title="Enable", type=input.bool, defval=true, group="RSI Signlas")
+source_rsi_signals =  input(defval=close, title="Source", group="RSI Signlas")
+length_rsi_signals = input(defval=14, minval=1, title="Length", group="RSI Signlas")
+oversold_rsi_signals = input(defval=30, minval=1, title="Oversold", group="RSI Signlas")
+overbought_rsi_signals = input(defval=70, minval=1, title="Overbought", group="RSI Signlas")
 
-// --------------------------------------------------------------------- Series
-if extra_ma_type == "EMA"
-	extra_ma:=ema(extra_ma_source, extra_ma_length)
-if extra_ma_type == "MA"
-	extra_ma:=sma(extra_ma_source, extra_ma_length)
-if extra_ma_type == "RMA"
-	extra_ma:=rma(extra_ma_source, extra_ma_length)
-if extra_ma_type == "SMMA"
-	extra_ma:=smma(extra_ma_source, extra_ma_length)
-if extra_ma_type == "VWMA"
-	extra_ma := vwma(extra_ma_source, extra_ma_length)
-if extra_ma_type == "WMA"
-	extra_ma:=wma(extra_ma_source, extra_ma_length)
+rsi_security_resolution = input(title="Resolution", defval="", type=input.resolution)
 
-plot(series=extra_ma_enable ? extra_ma : na, title="extra", color=color.white, linewidth=2, transp=30)
+// -------------------------------------------------- Calculations and Security
+rsi_value = rsi(source_rsi_signals, length_rsi_signals)
+rsi_security = security(symbol=syminfo.tickerid, resolution=rsi_security_resolution, expression=rsi_value)
+rsi_os = rsi_security <= oversold_rsi_signals
+rsi_ob = rsi_security >= overbought_rsi_signals
+
+// ------------------------------------------------------------------- Plotting
+plotshape(rsi_ob and enable_rsi_signals and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangledown, title="RSI Overbought", location=location.abovebar)
+plotshape(rsi_os and enable_rsi_signals and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangleup, title = "RSI Oversold", location=location.belowbar)
