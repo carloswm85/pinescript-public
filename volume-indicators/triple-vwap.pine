@@ -4,14 +4,13 @@
 // TODO: Make the script automatic. For example, do not display session VWAP at timeframes equal or higer than 1D.
 
 //@version=4
-study(title="Triple VWAP", shorttitle="s3V", overlay=true, resolution="")
+study(title="Triple VWAP", shorttitle="3V", overlay=true, resolution="")
 
+// ========================================================================= //
+// ---------------------------> Triple VWAP <------------------------------- //
+// ========================================================================= //
 
-// ======================================= //
-// -------------> Functions <------------- //
-// ======================================= //
-
-// Computing VWAP
+// ================================================================== Functions
 computeVWAP(src, isNewPeriod, stDevMultiplier) =>
 	var float sumSrcVol = na
 	var float sumVol = na
@@ -32,25 +31,16 @@ computeVWAP(src, isNewPeriod, stDevMultiplier) =>
 	
 	[_vwap, lowerBand, upperBand]
 
-// Getting time changes
 timeChange(period) =>
 	change(time(period))
 
-// No repainting at real time
-_NRPrt(tf,src) => 
-    security(syminfo.tickerid, tf, src[barstate.isconfirmed ? 0 : 1], barmerge.gaps_off)
 
-
-// ======================================= //
-// --------> 3VWAPs Triple VWAP <--------- //
-// ======================================= //
-
-// ========================================================= Inputs
-enable_vwap_s = input(true, title="Enable sVWAP", group="VWAP Enabling")
-enable_vwap_w = input(true, title="Enable wVWAP", group="VWAP Enabling")
-enable_vwap_m = input(true, title="Enable mVWAP", group="VWAP Enabling")
-enable_pvwap = input(true, title="Enable pVWAP", group="VWAP Enabling")
-// --------------------------------------------------------- SESSION
+// ===================================================================== Inputs
+enable_vwap_s = input(defval=true, title="Enable sVWAP", type=input.bool, tooltip="VWAP for the current session", group="VWAP Enabling")
+enable_vwap_w = input(defval=true, title="Enable wVWAP", type=input.bool, tooltip="VWAP for the current week", group="VWAP Enabling")
+enable_vwap_m = input(defval=true, title="Enable mVWAP", type=input.bool, tooltip="VWAP for the current month", group="VWAP Enabling")
+enable_pvwap = input(defval=true, title="Enable pVWAP", type=input.bool, tooltip="pVWAP extends an horizontal line from the very last value for previous day session VWAP", group="VWAP Enabling")
+// -------------------------------------------------------------------- SESSION
 // - Session VWAP Settings
 hideonDWM_s = input(true, title="Hide sVWAP on 1D or Above", group="Session VWAP Settings")
 var anchor_s = input(defval = "Session", title="Anchor Period", type=input.string, options=["Session", "Week", "Month", "Quarter", "Year", "Decade", "Century", "Earnings", "Dividends", "Splits"], group="Session VWAP Settings")
@@ -59,7 +49,7 @@ offset_s = input(0, title="Offset", group="Session VWAP Settings")
 // - Standard Deviation Bands Settings
 showBands_s = input(false, title="Calculate Bands", group="Session VWAP Settings")
 stdevMult_s = input(1.0, title="Bands Multiplier", group="Session VWAP Settings")
-// --------------------------------------------------------- WEEKLY
+// --------------------------------------------------------------------- WEEKLY
 // - Weekly VWAP Settings
 hideonDWM_w = input(true, title="Hide wVWAP on 1D or Above", group="Weekly VWAP Settings")
 var anchor_w = input(defval = "Week", title="Anchor Period", type=input.string, options=["Session", "Week", "Month", "Quarter", "Year", "Decade", "Century", "Earnings", "Dividends", "Splits"], group="Weekly VWAP Settings")
@@ -68,7 +58,7 @@ offset_w = input(0, title="Offset", group="Weekly VWAP Settings")
 // - Standard Deviation Bands Settings
 showBands_w = input(false, title="Calculate Bands", group="Weekly VWAP Settings")
 stdevMult_w = input(1.0, title="Bands Multiplier", group="Weekly VWAP Settings")
-// --------------------------------------------------------- MONTHLY
+// -------------------------------------------------------------------- MONTHLY
 // - Monthly VWAP Settings
 hideonDWM_m = input(false, title="Hide mVWAP on 1D or Above", group="Monthly VWAP Settings")
 var anchor_m = input(defval = "Month", title="Anchor Period", type=input.string, options=["Session", "Week", "Month", "Quarter", "Year", "Decade", "Century", "Earnings", "Dividends", "Splits"], group="Monthly VWAP Settings")
@@ -94,7 +84,7 @@ new_dividends_m = dividends(syminfo.tickerid, dividends.gross, barmerge.gaps_on,
 new_split_m = splits(syminfo.tickerid, splits.denominator, barmerge.gaps_on, barmerge.lookahead_on)
 
 
-// ========================================================= Main Condition
+// ============================================================= Main Condition
 // SESSION
 isNewPeriod_s = anchor_s == "Earnings" ? new_earnings_s :
  anchor_s == "Dividends" ? new_dividends_s :
@@ -136,7 +126,7 @@ isNewPeriod_m = anchor_m == "Earnings" ? new_earnings_m :
  false
 
 
-// ========================================================= Variables
+// ================================================================== Variables
 // SESSION
 float vwapValue_s = na
 float std_s = na
@@ -154,7 +144,7 @@ float upperBandValue_m = na
 float lowerBandValue_m = na
 
 
-// ========================================================= Condition
+// ================================================================== Condition
 // SESSION
 if not (hideonDWM_s and timeframe.isdwm)
     [_vwap, bottom, top] = computeVWAP(src_s, isNewPeriod_s, stdevMult_s)
@@ -175,7 +165,7 @@ if not (hideonDWM_m and timeframe.isdwm)
     lowerBandValue_m := showBands_m ? bottom : na
 
 
-// ========================================================= Plotting
+// =================================================================== Plotting
 // Colors
 color_vwap_s = color.new(#e91e63, 50) // Ruby color
 color_vwap_s_95 = color.new(#e91e63, 95)
@@ -200,19 +190,28 @@ lowerBand_m = plot(lowerBandValue_m, title="mLB", color=color_vwap_m, offset=off
 fill(upperBand_m, lowerBand_m, title="mBF", color= showBands_m ? color_vwap_m_95 : na) // Monthly Band Filler
 
 
-// ======================================= //
-// ---> pVWAP Previous VWAP at close <---- //
-// ======================================= //
+// ========================================================================= //
+// --------------------> pVWAP Previous VWAP at close <--------------------- //
+// ========================================================================= //
+// pVWAP extends an horizontal line from the very last value for previous day session VWAP
 
-// ========================================================= Inputs
-pvwap_resolution = input(defval="D", type=input.resolution, title="Resolution", group="pVWAP Settings")
+// No repainting at real time
+_NRPrt(tf,src) => 
+    security(syminfo.tickerid, tf, src[barstate.isconfirmed ? 0 : 1], barmerge.gaps_off)
+
+// Inputs    
+pvwap_resolution = input(defval="D", title="pVWAP Resolution", type=input.resolution, group="pVWAP Settings")
 pvwap_source = time
 
-// ========================================================= Calculations
+// Calculations
 security_pvwap = _NRPrt(pvwap_resolution, pvwap_source)
 security_pvwap_diff = change(security_pvwap) ? 1 : 0
 value = valuewhen(security_pvwap_diff, vwapValue_s[1], 0)
 
-// ========================================================= Plotting
-color_pvwap = color.new(#e91e63, 20)
+// Plotting
+color_pvwap = color.new(#b2b5be, 0) // Bombay Gray
 plot(enable_pvwap ? value : na, title = "pVWAP", color = color_pvwap, style = plot.style_cross, linewidth = 1)
+
+
+
+// → END OF SCRIPT
