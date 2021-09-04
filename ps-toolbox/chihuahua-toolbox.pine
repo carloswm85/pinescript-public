@@ -45,19 +45,19 @@ open_minute = 00
 is_hour     = hour==open_hour
 is_minute   = minute==open_minute
 is_hour_4h 	= iff(hour==4 or hour==8 or hour==12 or hour==16 or hour==20, true, false)
-// Timeframe visibility, if given timeframe is NOT less than...
-visibility_1h = iff(timeframe.period=="60", false, true)
-visibility_4h = iff(timeframe.period=="60" or timeframe.period=="240" or timeframe.period=="D" or timeframe.period=="W", false, true)
-visibility_1D = iff(timeframe.period=="D" or timeframe.period=="W" or timeframe.period=="M", false, true)
-visibility_1W = iff(timeframe.period=="W" or timeframe.period=="M", false, true)
+// Timeframe visibility, for the given vertical line...
+visibility_1h = iff(timeframe.period=="1" or timeframe.period=="3" or timeframe.period=="5" or timeframe.period=="15" or timeframe.period=="30" or timeframe.period=="45", true, false) // Gray lines. Visible at...
+visibility_4h = iff(timeframe.period=="60" or timeframe.period=="120" or timeframe.period=="180" or timeframe.period=="240" or timeframe.period=="D" or timeframe.period=="W" or timeframe.period=="M", false, true) // Orange lines. Not visible at...
+visibility_1D = iff(timeframe.period=="D" or timeframe.period=="W" or timeframe.period=="M", false, true) // Yellow lines. Not visible at...
+visibility_1W = iff(timeframe.period=="W" or timeframe.period=="M", false, true) // Blue lines. Not visible at...
 
 // ---------------------------------------------------------- (pseudo) Plotting
 // Colors
 vl_gray =  color.new(color.gray, 50) // For 1h
 vl_orange =  color.new(color.orange, 40) // For 4h
 vl_yellow =  color.new(color.yellow, 40) // For sessions
-vl_green =  color.new(#4caf50, 40) // For beginning of week
-vl_blue =  color.new(#2962ff, 40) // For beginning of month
+vl_green =  color.new(#4caf50, 40) // For beginning of week. Green.
+vl_blue =  color.new(#2962ff, 40) // For beginning of month. Blue.
 
 // Variable assignment not required, not plotting
 if(enable_lines_htf and is_hour and is_minute)
@@ -70,19 +70,20 @@ if(enable_lines_htf and is_hour and is_minute)
         vline(bar_index, vl_yellow, line.style_dashed, 2) 
     
 if enable_lines_ltf
-    if enable_lines_4h and is_hour_4h and is_minute
+    if enable_lines_4h and is_hour_4h and is_minute and visibility_4h
         vline(bar_index, vl_orange, line.style_dotted, 2)
     else if enable_lines_1h and is_minute and visibility_1h
         vline(bar_index, vl_gray, line.style_dotted, 2)
 
+
 // ========================================================================= //
-// ------------------------------> Daily HLC <------------------------------ //
+// ---------------------> Previous Daily HLC <------------------------------ //
 // ========================================================================= //
-// High, Low, and Close, as horizontal lines from the selected resolution. Default is 1D.
+// High, Low, and Close, as horizontal lines from the selected resolution. From the previous period. Default is 1D.
 
 // --------------------------------------------------------------------- Inputs
-enable_daily_hlc   = input(defval=true, title="Enable Daily HLC", type=input.bool, group="Daily HLC")
-hlc_resolution = input(defval="D", title="Resolution", type=input.resolution, group="Daily HLC")
+enable_previous_hlc   = input(defval=true, title="Enable Previous HLC", type=input.bool, group="Previous HLC Settings")
+hlc_resolution = input(defval="D", title="Resolution", type=input.resolution, group="Previous HLC Settings")
 
 high_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=high)
 low_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=low)
@@ -102,6 +103,76 @@ if trim_line_plot[1]
     close_security_value	:= close_security
 
 // ------------------------------------------------------------------- Plotting
-plot(not trim_line_plot and enable_daily_hlc ? high_security_value : na, title="high", style=plot.style_linebr, linewidth=1, color=color.red)
-plot(not trim_line_plot and enable_daily_hlc ? low_security_value : na, title="low", style=plot.style_linebr, linewidth=1, color=color.lime)
-plot(not trim_line_plot and enable_daily_hlc ? close_security_value : na, title="close", style=plot.style_linebr, linewidth=1, color=color.orange)
+plot(not trim_line_plot and enable_previous_hlc ? high_security_value : na, title="high", style=plot.style_linebr, linewidth=1, color=color.red)
+plot(not trim_line_plot and enable_previous_hlc ? low_security_value : na, title="low", style=plot.style_linebr, linewidth=1, color=color.lime)
+plot(not trim_line_plot and enable_previous_hlc ? close_security_value : na, title="close", style=plot.style_linebr, linewidth=1, color=color.orange)
+
+
+// ========================================================================= //
+// -----------------------------------> EMAs <------------------------------ //
+// ========================================================================= //
+// 3 Exponential Moving Averages, they are classic EMAs 20/50/200
+
+// --------------------------------------------------------------------- Inputs
+ema_enable = input(title="Enable EMAs a/b/c", defval=true, type=input.bool, group="EMAs Settings")
+ema_enable_fill_a_b = input(title="Enable EMAs Fill a/b", defval=true, type=input.bool, group="EMAs Settings")
+ema_enable_fill_b_c = input(title="Enable EMAs Fill b/c", defval=false, type=input.bool, group="EMAs Settings")
+ema_source = input(title="Source", defval=low, type=input.source, group="EMAs Settings")
+ema_resolution = input(title="Resolution", defval="", type=input.resolution, group="EMAs Settings")
+
+// ----------------------------------------------------------------- Securities
+ema_security_a = security(symbol=syminfo.tickerid, resolution=ema_resolution, expression=ema(ema_source, 20))
+ema_security_b = security(symbol=syminfo.tickerid, resolution=ema_resolution, expression=ema(ema_source, 50))
+ema_security_c = security(symbol=syminfo.tickerid, resolution=ema_resolution, expression=ema(ema_source, 200))
+
+// --------------------------------------------------------------------- Colors
+color_upwards_price = #26a69a // Classic Green
+color_downwards_price = #ef5350 // Classic Red
+
+// ------------------------------------------------------------------- Plotting
+ema_a_plot = plot(series=ema_enable ? ema_security_a : na, title="a", color=color.aqua, linewidth=2, transp=30)
+ema_b_plot = plot(series=ema_enable ? ema_security_b : na, title="b", color=color.orange, linewidth=2, transp=30)
+ema_c_plot = plot(series=ema_enable ? ema_security_c : na, title="c", color=color.fuchsia, linewidth=2, transp=30)
+
+// ----------------------------------------------------------------------- Fill
+ema_fill_a_b = ema_enable_fill_a_b ? (ema_security_a >= ema_security_b ? color_upwards_price : color_downwards_price) : na
+ema_fill_b_c = ema_enable_fill_b_c ? (ema_security_b >= ema_security_c ? color_upwards_price : color_downwards_price) : na
+fill(plot1 = ema_a_plot, plot2 = ema_b_plot, color = ema_fill_a_b, transp = 80, title = "EMAs 20/50 Fill")
+fill(plot1 = ema_b_plot, plot2 = ema_c_plot, color = ema_fill_b_c, transp = 80, title = "EMAs 50/200 Fill")
+
+
+// ========================================================================= //
+// ----------------------> Extra Moving Average <--------------------------- //
+// ========================================================================= //
+// 1 single moving average setteable several different MAs types.
+
+// ------------------------------------------------------------------ Functions
+smma(_source, _len) =>
+    var float _value_smma = na
+    localSMA = sma(_source, _len)
+    _value_smma := na(_value_smma[1]) ? localSMA : (_value_smma[1] * (_len - 1) + _source) / _len
+
+// --------------------------------------------------------------------- Inputs
+extra_ma_enable = input(title="Enable", defval=true, type=input.bool, group="Extra MA Settings")
+extra_ma_type = input(title="Type", defval="MA", options=["EMA", "MA", "RMA", "SMMA", "VWMA", "WMA"], group="Extra MA Settings")
+extra_ma_source = input(title="Source", defval=low, type=input.source, group="Extra MA Settings")
+extra_ma_length = input(defval=9,  title = "Length", group="Extra MA Settings")
+extra_ma_resolution = input(title="Resolution", defval="", type=input.resolution, group="Extra MA Settings")
+// ------------------------------------------------------------------ Variables
+var float extra_ma = na
+
+// --------------------------------------------------------------------- Series
+if extra_ma_type == "EMA"
+	extra_ma:=ema(extra_ma_source, extra_ma_length)
+if extra_ma_type == "MA"
+	extra_ma:=sma(extra_ma_source, extra_ma_length)
+if extra_ma_type == "RMA"
+	extra_ma:=rma(extra_ma_source, extra_ma_length)
+if extra_ma_type == "SMMA"
+	extra_ma:=smma(extra_ma_source, extra_ma_length)
+if extra_ma_type == "VWMA"
+	extra_ma := vwma(extra_ma_source, extra_ma_length)
+if extra_ma_type == "WMA"
+	extra_ma:=wma(extra_ma_source, extra_ma_length)
+
+plot(series=extra_ma_enable ? extra_ma : na, title="extra", color=color.white, linewidth=2, transp=30)
