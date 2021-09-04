@@ -53,9 +53,9 @@ visibility_1W = iff(timeframe.period=="W" or timeframe.period=="M", false, true)
 
 // ---------------------------------------------------------- (pseudo) Plotting
 // Colors
-vl_gray =  color.new(color.gray, 50)
+vl_gray =  color.new(color.gray, 50) // For 1h
+vl_orange =  color.new(color.orange, 40) // For 4h
 vl_yellow =  color.new(color.yellow, 40) // For sessions
-vl_orange =  color.new(color.orange, 40)
 vl_green =  color.new(#4caf50, 40) // For beginning of week
 vl_blue =  color.new(#2962ff, 40) // For beginning of month
 
