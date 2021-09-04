@@ -28,33 +28,52 @@ vline(BarIndex, Color, LineStyle, LineWidth) => // Verticle Line Function, ≈50
     line.new(x1=BarIndex, y1=low-tr, x2=BarIndex, y2=high+tr, xloc=xloc.bar_index, extend=extend.both, color=Color, style=LineStyle, width=LineWidth) // Suitable for study(overlay=true)
 
 // --------------------------------------------------------------------- Inputs
-enable_line_1D   = input(defval=true, title="Enable 1D", type=input.bool, group="Vertical Lines")
-enable_line_4h   = input(defval=true, title="Enable 4h", type=input.bool, group="Vertical Lines")
+// Lower Timeframes
+enable_lines_ltf  = input(defval=true, title="Lower Timeframes", type=input.bool, group="Enable Vertical Lines LTF")
+enable_lines_1h   = input(defval=true, title="1h", type=input.bool, group="Enable Vertical Lines LTF")
+enable_lines_4h   = input(defval=true, title="4h", type=input.bool, group="Enable Vertical Lines LTF")
+// Higher Timeframes
+enable_lines_htf  = input(defval=true, title="Higher Timeframes", type=input.bool, group="Enable Vertical Lines HTF")
+enable_lines_1D   = input(defval=true, title="1D", type=input.bool, group="Enable Vertical Lines HTF")
+enable_lines_1W   = input(defval=true, title="1W", type=input.bool, group="Enable Vertical Lines HTF")
+enable_lines_1M   = input(defval=true, title="1M", type=input.bool, group="Enable Vertical Lines HTF")
 open_hour   = 00
 open_minute = 00
 
 // ----------------------------------------------------------------- Conditions
-// Time interval
+// Time intervals
 is_hour     = hour==open_hour
 is_minute   = minute==open_minute
 is_hour_4h 	= iff(hour==4 or hour==8 or hour==12 or hour==16 or hour==20, true, false)
-// Timeframe visibility
-visibility_4h = iff(timeframe.period=="60" or timeframe.period=="240" or timeframe.period=="D" or timeframe.period=="W", false, true) // Visible if timeframe is less than 60min
-visibility_1D = iff(timeframe.period=="D" or timeframe.period=="W" or timeframe.period=="M", false, true) // Visible if timeframe is less than 1D
+// Timeframe visibility, if given timeframe is NOT less than...
+visibility_1h = iff(timeframe.period=="60", false, true)
+visibility_4h = iff(timeframe.period=="60" or timeframe.period=="240" or timeframe.period=="D" or timeframe.period=="W", false, true)
+visibility_1D = iff(timeframe.period=="D" or timeframe.period=="W" or timeframe.period=="M", false, true)
+visibility_1W = iff(timeframe.period=="W" or timeframe.period=="M", false, true)
 
 // ---------------------------------------------------------- (pseudo) Plotting
 // Colors
-vl_1D_default_color =  color.new(color.yellow, 20)
-vl_4h_default_color =  color.new(color.orange, 40)
+vl_gray =  color.new(color.gray, 50)
+vl_yellow =  color.new(color.yellow, 40) // For sessions
+vl_orange =  color.new(color.orange, 40)
+vl_green =  color.new(#4caf50, 40) // For beginning of week
+vl_blue =  color.new(#2962ff, 40) // For beginning of month
 
 // Variable assignment not required, not plotting
-if(enable_line_1D and is_hour and is_minute and visibility_1D)
+if(enable_lines_htf and is_hour and is_minute)
     // TODO: How do I change the color line for 'start of week' and 'start of month'? At 1D vline.
-    vline(bar_index, vl_1D_default_color, line.style_dashed, 2) 
+    if enable_lines_1M and dayofmonth==1
+        vline(bar_index, vl_blue, line.style_dashed, 2)
+    else if enable_lines_1W and dayofweek==dayofweek.monday
+        vline(bar_index, vl_green, line.style_dashed, 2)
+    else if enable_lines_1D and visibility_1D
+        vline(bar_index, vl_yellow, line.style_dashed, 2) 
     
-if(enable_line_4h and is_hour_4h and is_minute and visibility_4h)
-    vline(bar_index, vl_4h_default_color, line.style_dotted, 2) 
-
+if enable_lines_ltf
+    if enable_lines_4h and is_hour_4h and is_minute
+        vline(bar_index, vl_orange, line.style_dotted, 2)
+    else if enable_lines_1h and is_minute and visibility_1h
+        vline(bar_index, vl_gray, line.style_dotted, 2)
 
 // ========================================================================= //
 // ------------------------------> Daily HLC <------------------------------ //
