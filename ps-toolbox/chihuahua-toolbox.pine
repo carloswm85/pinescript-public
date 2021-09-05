@@ -171,3 +171,6 @@ rsi_ob = rsi_security >= overbought_rsi_signals
 // ------------------------------------------------------------------- Plotting
 plotshape(rsi_ob and enable_rsi_signals and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangledown, title="RSI Overbought", location=location.abovebar)
 plotshape(rsi_os and enable_rsi_signals and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangleup, title = "RSI Oversold", location=location.belowbar)
+
+
+// → END OF SCRIPT
