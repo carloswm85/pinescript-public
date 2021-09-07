@@ -119,8 +119,8 @@ plot(hlc_condition ? close_security_value : na, title="close", style=plot.style_
 
 // --------------------------------------------------------------------- Inputs
 ema_enable = input(title="Enable EMAs 20/50/200", defval=true, type=input.bool, group="EMAs Settings")
-ema_enable_fill_a_b = input(title="Enable EMAs Fill 20/50", defval=true, type=input.bool, group="EMAs Settings")
-ema_enable_fill_b_c = input(title="Enable EMAs Fill 50/200", defval=false, type=input.bool, group="EMAs Settings")
+ema_enable_fill_20_50 = input(title="Enable EMAs Fill 20/50", defval=true, type=input.bool, group="EMAs Settings")
+ema_enable_fill_50_200 = input(title="Enable EMAs Fill 50/200", defval=false, type=input.bool, group="EMAs Settings")
 ema_source = input(title="Source", defval=low, type=input.source, group="EMAs Settings")
 ema_resolution = input(title="Resolution", defval="", type=input.resolution, group="EMAs Settings")
 
@@ -134,15 +134,30 @@ color_upwards_price = #26a69a // Classic Green
 color_downwards_price = #ef5350 // Classic Red
 
 // ------------------------------------------------------------------- Plotting
-ema_a_plot = plot(series=ema_enable ? ema_security_20 : na, title="EMA20", color=color.aqua, linewidth=2, transp=30)
-ema_b_plot = plot(series=ema_enable ? ema_security_50 : na, title="EMA50", color=color.orange, linewidth=2, transp=30)
-ema_c_plot = plot(series=ema_enable ? ema_security_200 : na, title="EMA200", color=color.fuchsia, linewidth=2, transp=30)
+ema_20_plot = plot(series=ema_enable ? ema_security_20 : na, title="EMA20", color=color.aqua, linewidth=2, transp=30)
+ema_50_plot = plot(series=ema_enable ? ema_security_50 : na, title="EMA50", color=color.orange, linewidth=2, transp=30)
+ema_200_plot = plot(series=ema_enable ? ema_security_200 : na, title="EMA200", color=color.fuchsia, linewidth=2, transp=30)
 
 // ----------------------------------------------------------------------- Fill
-ema_fill_a_b = ema_enable_fill_a_b ? (ema_security_20 >= ema_security_50 ? color_upwards_price : color_downwards_price) : na
-ema_fill_b_c = ema_enable_fill_b_c ? (ema_security_50 >= ema_security_200 ? color_upwards_price : color_downwards_price) : na
-fill(plot1 = ema_a_plot, plot2 = ema_b_plot, color = ema_fill_a_b, transp = 80, title = "EMAs 20/50 Fill")
-fill(plot1 = ema_b_plot, plot2 = ema_c_plot, color = ema_fill_b_c, transp = 80, title = "EMAs 50/200 Fill")
+ema_fill_20_50 = ema_enable_fill_20_50 ? (ema_security_20 >= ema_security_50 ? color_upwards_price : color_downwards_price) : na
+ema_fill_50_200 = ema_enable_fill_50_200 ? (ema_security_50 >= ema_security_200 ? color_upwards_price : color_downwards_price) : na
+fill(plot1 = ema_20_plot, plot2 = ema_50_plot, color = ema_fill_20_50, transp = 80, title = "EMAs 20/50 Fill")
+fill(plot1 = ema_50_plot, plot2 = ema_200_plot, color = ema_fill_50_200, transp = 80, title = "EMAs 50/200 Fill")
+
+// --------------------------------------------------------------------- Alert
+// This alert should be used in 5m timeframes, at BTCUSDT; backtesting should be made at other assets.
+
+// Function
+cross_50_200(_ema50, _ema200) =>
+    iff (_ema50 >= _ema200, true, false)
+
+// Conditions
+cross_50_200_alert = cross_50_200(ema_security_50, ema_security_200) 
+
+// Funtional Alerts
+if cross_50_200_alert
+    // Trigger the alert the first time it occurs during the real-time bar.
+    alert("EMA50 over EMA200: " + tostring(close) + " triggered.", alert.freq_once_per_bar)
 
 
 // ========================================================================= //

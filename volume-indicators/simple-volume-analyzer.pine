@@ -124,6 +124,7 @@ hline(price = 0, title = "Zero Line", color = zero_line_color, linestyle = hline
 
 
 // ========================================================= Custom Alarms (Send out an alert if this candle meets our conditions)
+// TODO: Make new alarms, for diffent volumes? UHV and HV
 // Alert Functions
 sva_hv_alert(vol, ma3) =>
     iff (vol >= ma3, true, false)
