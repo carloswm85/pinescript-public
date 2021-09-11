@@ -4,7 +4,6 @@
 //@version=4
 study(title="[bjb] Chihuahua Toolbox", shorttitle="chTx", overlay=true)
 
-// TODO: Add supply and demand signals.
 
 // CONTENT
 // 1. Vertical Lines (every 1D and 4h)
@@ -18,11 +17,13 @@ study(title="[bjb] Chihuahua Toolbox", shorttitle="chTx", overlay=true)
 // Indicator repainting: https://www.tradingview.com/pine-script-docs/en/v4/essential/Indicator_repainting.html
 
 // GENERAL SETTINGS
-enable_vl  = input(defval=true, title="Vertical Lines", type=input.bool, group="Enablers")
-enable_previous_hlc = input(defval=true, title="Previous HLC", type=input.bool, group="Enablers")
-enable_ema = input(title="EMAs 20/50/200", defval=true, type=input.bool, group="Enablers")
-enable_rsi_signals = input(title="RSI Signals", type=input.bool, defval=true, group="Enablers")
-enable_dsma = input(defval=true,  title="DsMAs", group="Enablers")
+enable_vl       = input(defval=true, title="Vertical Lines", type=input.bool, tooltip="Vertical lines for 1h, 4h, D, W, M", group="Enablers")
+enable_p_hlc    = input(defval=true, title="Previous HLC", type=input.bool, tooltip="Previous day high, low and close", group="Enablers") // TODO: Add optional open
+enable_ema      = input(defval=true, title="Classic EMAs", type=input.bool, tooltip="3 EMAs, values  20/50/200. With fillers", group="Enablers")
+enable_rsi_s    = input(defval=true, title="RSI Signals", type=input.bool, tooltip="Overlay (in main chart) oversold and overbought RSI signals", group="Enablers")
+enable_dsma     = input(defval=true,  title="Double Single Moving Averages - DsMAs", tooltip="Mainly for scalping. 2 EMAs with default value of 9", group="Enablers")
+enable_wh       = input(defval=true, title="Wicks Highlighter - WH", type=input.bool, tooltip="White wicks for n previous candlesticks", group="Enablers")
+// TODO: Add supply and demand signals.
 
 
 // ========================================================================= //
@@ -123,7 +124,7 @@ if trim_line_plot[1]
     close_security_value	:= close_security
 
 // ------------------------------------------------------------------- Plotting
-hlc_condition = not trim_line_plot and enable_previous_hlc and visibility_1D
+hlc_condition = not trim_line_plot and enable_p_hlc and visibility_1D
 plot(hlc_condition and enable_phlc_high ? high_security_value : na, title="high", style=plot.style_linebr, linewidth=1, color=color.red)
 plot(hlc_condition and enable_phlc_low ? low_security_value : na, title="low", style=plot.style_linebr, linewidth=1, color=color.lime)
 plot(hlc_condition and enable_phlc_close ? close_security_value : na, title="close", style=plot.style_linebr, linewidth=1, color=color.orange)
@@ -220,8 +221,8 @@ rsi_os = rsi_security <= oversold_rsi_signals
 rsi_ob = rsi_security >= overbought_rsi_signals
 
 // ------------------------------------------------------------------- Plotting
-plotshape(rsi_ob and enable_rsi_signals and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangledown, title="RSI Overbought", location=location.abovebar)
-plotshape(rsi_os and enable_rsi_signals and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangleup, title = "RSI Oversold", location=location.belowbar)
+plotshape(rsi_ob and enable_rsi_s and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangledown, title="RSI Overbought", location=location.abovebar)
+plotshape(rsi_os and enable_rsi_s and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangleup, title = "RSI Oversold", location=location.belowbar)
 
 
 // ========================================================================= //
@@ -279,6 +280,16 @@ if dsma_type == "WMA"
 // --------------------------------------------------------------------- Plot
 plot(enable_dsma and enable_dsma_1 ? dsma_1 : na,  title="DsMA1", color=dsma_color, linewidth=2)
 plot(enable_dsma and enable_dsma_2 ? dsma_2 : na,  title="DsMA2", color=dsma_color, linewidth=2)
+
+
+// ========================================================================= //
+// ----------------------------> Wick Highligher <-------------------------- //
+// ========================================================================= //
+wh_length = input(defval=6,  title = "Length", group="Wick Highlighter")
+wh_body_color = color.new(color.silver, 100)
+wh_wick_color = color.new(color.white, 10)
+plotcandle(open, high, low, enable_wh ? close : na, title='WH', color=wh_body_color, wickcolor=wh_wick_color, bordercolor=wh_body_color, show_last=wh_length)
+
 
 
 

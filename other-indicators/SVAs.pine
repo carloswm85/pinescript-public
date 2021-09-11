@@ -1,0 +1,146 @@
+// This source code is subject to the terms of the Osozilla Public License 2.0 at https://mozilla.org/OsPL/2.0/
+// © BlueJayBird, author
+// @version=4
+
+study(title = "[bjb] SVAs - Simple Volume Analysis Signals, by @BlueJayBird", shorttitle = "SVAs", precision = 2, format = format.price, overlay = true)
+
+// ------------------------------------------- Input
+enable_supply_signals = input(defval = false, title = "Enable Supply Zone Signals (SZS)", type = input.bool)
+enable_demand_signals = input(defval = false, title = "Enable Demand Zone Signals (DZS)", type = input.bool)
+enable_primary_signals = input(title = "Enable Primary S&D Signals (pS)", type = input.bool, defval = true)
+enable_secondary_signals = input(title = "Enable Secondary S&D Signals (sS)", type = input.bool, defval = true)
+volume_resolution = ""
+volume_smoother_a = input(defval = 20, title = "VMA Smoother A (LV, MV, HV)", type = input.integer)
+volume_smoother_b = input(defval = 5, title = "VMA Smoother B (LV, MV, HV)", type = input.integer)
+volume_smoother_c = input(defval = 200, title = "VMA Smoother C (UHV)", type = input.integer)
+volume_res1_multiplier = input(defval = 1.1, title = "Low Volume (LV) Multiplier", type = input.float)
+volume_res2_multiplier = input(defval = 1.5, title = "Medium Volume (MV) Multiplier", type = input.float)
+volume_res3_multiplier = input(defval = 2.1, title = "High Volume (HV) Multiplier", type = input.float)
+volume_res4_multiplier = input(defval = 7.5, title = "Ultra-High Volume (UHV) Multiplier", type = input.float)
+volume_sec = security(symbol = syminfo.tickerid, resolution = volume_resolution, expression = volume)
+volume_sec_close = security(symbol = syminfo.tickerid, resolution = volume_resolution, expression = close)
+volume_sec_open = security(symbol = syminfo.tickerid, resolution = volume_resolution, expression = open)
+volume_sec_hl2 = security(symbol = syminfo.tickerid, resolution = volume_resolution, expression = hl2)
+transparencyOsSignals = 0
+drawOnRealTime = true // "Draw On Candles Yet To Close"
+
+// ------------------------------------------- Colors
+color_upwards_price = #26a69a // Classic Green
+color_downwards_price = #ef5350 // Classic Red
+
+// ------------------------------------------- Functions
+// Label Colors
+shape_color(ma, ma2, ma3, ma4) =>
+    if volume_sec_close >= volume_sec_open
+        // Bullish Volume
+        if volume_sec >= ma4
+            color.new(color.white, 0)
+        else if volume_sec >= ma3
+            color.new(color.yellow, 0)
+        else if volume_sec >= ma2
+            color.new(color_upwards_price, 10)
+        else if volume_sec < ma2 and volume_sec >= ma
+            color.new(color_upwards_price, 40)
+        else
+            vol_green = color.new(color_upwards_price, 70)
+    else
+        // Bearish
+        if volume_sec >= ma4
+            color.new(color.white, 0)
+        else if volume_sec >= ma3
+            color.new(color.yellow, 0)
+        else if volume_sec >= ma2
+            color.new(color_downwards_price, 10)
+        else if volume_sec < ma2 and volume_sec >= ma
+            color.new(color_downwards_price, 40)
+        else
+            color.new(color_downwards_price, 70)
+
+// ------------------------------------------- Calculations
+vol_ma_resistance_1 = ema(sma(volume_sec * volume_res1_multiplier, volume_smoother_a), volume_smoother_b)
+vol_ma_resistance_2 = ema(vwma(volume_sec * volume_res2_multiplier, volume_smoother_a), volume_smoother_b)
+vol_ma_resistance_3 = ema(vwma(volume_sec * volume_res3_multiplier, volume_smoother_a), volume_smoother_b)
+volume_res4_multiplier := timeframe.period == "60" ? 4.1 : 7.5
+vol_ma_resistance_4 = sma(volume_sec * volume_res4_multiplier, volume_smoother_c)
+
+// ------------------------------------------- Plotting
+// S&D Labels, Primary Signals
+plotshape(enable_supply_signals and enable_primary_signals and (barstate.ishistory or drawOnRealTime) and volume_sec > vol_ma_resistance_2 and volume_sec_hl2 > volume_sec_hl2[1], color = shape_color(vol_ma_resistance_1, vol_ma_resistance_2, vol_ma_resistance_3, vol_ma_resistance_4), transp = transparencyOsSignals, style = shape.circle, title = "Primary SZS", location = location.abovebar)
+plotshape(enable_demand_signals and enable_primary_signals and (barstate.ishistory or drawOnRealTime) and volume_sec > vol_ma_resistance_2 and volume_sec_hl2 <= volume_sec_hl2[1], color = shape_color(vol_ma_resistance_1, vol_ma_resistance_2, vol_ma_resistance_3, vol_ma_resistance_4), transp = transparencyOsSignals, style = shape.circle, title = "Primary DZS", location = location.belowbar)
+// S&D Secondary Signals
+plotshape(enable_supply_signals and enable_primary_signals and enable_secondary_signals and (barstate.ishistory or drawOnRealTime) and volume_sec > vol_ma_resistance_1 and volume_sec <= vol_ma_resistance_2 and volume_sec_hl2 > volume_sec_hl2[1], color = color_downwards_price, transp = transparencyOsSignals, style = shape.circle, title = "Secondary SZS", location = location.abovebar)
+plotshape(enable_demand_signals and enable_primary_signals and enable_secondary_signals and (barstate.ishistory or drawOnRealTime) and volume_sec > vol_ma_resistance_1 and volume_sec <= vol_ma_resistance_2 and volume_sec_hl2 <= volume_sec_hl2[1], color = color_upwards_price, transp = transparencyOsSignals, style = shape.circle, title = "Secondary DZS", location = location.belowbar)
+
+// ########################################### EMAs
+// ------------------------------------------- Inputs
+ema_enable = input(title = "Enable EMAs 20/50/200", defval = true, type = input.bool)
+ema_enable_fill_2050 = input(title = "Enable EMAs Fill 20/50", defval = true, type = input.bool)
+ema_enable_fill_50200 = input(title = "Enable EMAs Fill 50/200", defval = false, type = input.bool)
+ema_source = input(title = "EMAs Source", defval = low, type = input.source)
+ema_resolution = input(title = "EMAs Resolution", defval = "", type = input.resolution)
+ema_security_20 = security(symbol = syminfo.tickerid, resolution = ema_resolution, expression = ema(ema_source, 20))
+ema_security_50 = security(symbol = syminfo.tickerid, resolution = ema_resolution, expression = ema(ema_source, 50))
+ema_security_200 = security(symbol = syminfo.tickerid, resolution = ema_resolution, expression = ema(ema_source, 200))
+// ------------------------------------------- Plotting
+ema20_plot = plot(series = ema_enable ? ema_security_20 : na, title = "EMA20", color = color.aqua, linewidth = 2, transp = 30)
+ema50_plot = plot(series = ema_enable ? ema_security_50 : na, title = "EMA50", color = color.orange, linewidth = 2, transp = 30)
+ema200_plot = plot(series = ema_enable ? ema_security_200 : na, title = "EMA200", color = color.fuchsia, linewidth = 2, transp = 30)
+// Fill
+ema_fill_20_50 = ema_enable_fill_2050 ? (ema_security_20 >= ema_security_50 ? color_upwards_price : color_downwards_price) : na
+ema_fill_50_200 = ema_enable_fill_50200 ? (ema_security_50 >= ema_security_200 ? color_upwards_price : color_downwards_price) : na
+fill(plot1 = ema20_plot, plot2 = ema50_plot, color = ema_fill_20_50, transp = 80, title = "EMAs 20/50 Fill")
+fill(plot1 = ema50_plot, plot2 = ema200_plot, color = ema_fill_50_200, transp = 80, title = "EMAs 50/200 Fill")
+
+// ########################################### Time Divisions
+
+// enable_hld = input(title = "Enable Hourly Line Division (HLD)", type = input.bool, defval = false)
+// enable_dld = input(title = "Enable Daily Line Division (DLD)", type = input.bool, defval = false)
+// enable_wld = input(title = "Enable Weekly Line Division (WLD)", type = input.bool, defval = false)
+// minute_timeframe = timeframe.period == "1" or timeframe.period == "3" or timeframe.period == "5" or timeframe.period == "15" 
+// hourly_timeframe = timeframe.period == "1" or timeframe.period == "3" or timeframe.period == "5" or timeframe.period == "15" or timeframe.period == "30" or timeframe.period == "45" or timeframe.period == "60" or timeframe.period == "240"
+// weekly_timeframe = timeframe.period == "240" or timeframe.period == "D"
+// plot(series = minute_timeframe and enable_hld and hour % 2 == 0 ? 0 : close * 10, title = "Hourly Line Division", color = color.white, linewidth = 1, style = plot.style_linebr, transp = 50, editable = true)
+// plot(series = hourly_timeframe and enable_dld and dayofmonth % 2 == 0 ? 0 : close * 10, title = "Daily Line Division", color = color.white, linewidth = 1, style = plot.style_linebr, transp = 50, editable = true)
+// plot(series = weekly_timeframe and enable_wld and dayofweek % 2 == 0 ? 0 : close * 20, title = "Weekly Line Division", color = color.white, linewidth = 1, style = plot.style_linebr, transp = 50, editable = true)
+
+// ########################################### CSC
+// ------------------------------------------- Enable
+enable_candle_count = input(title = "Enable Candlestick Count (CSC)", type = input.bool, defval = true)
+plotcandle(open, high, low, enable_candle_count ? close : na, title='CSC', color = color.new(color.silver, 100), wickcolor = color.new(color.white, 10), bordercolor = color.new(color.white, 100), show_last = 6, editable = true)
+
+// ########################################### Previous Day L&H
+// ------------------------------------------- Enable
+enable_pdhlc = input(title = "Enable Previous Day HLC", type = input.bool, defval = false)
+enable_pwhlc = input(title = "Enable Previous Week HLC", type = input.bool, defval = false)
+enable_pmhlc = input(title = "Enable Previous Month HLC", type = input.bool, defval = false)
+visible_timeframe_day = timeframe.period == "1" or timeframe.period == "3" or timeframe.period == "5" or timeframe.period == "15" or timeframe.period == "30" or timeframe.period == "45" or timeframe.period == "60" or timeframe.period == "120" or timeframe.period == "180" or timeframe.period == "240"
+visible_timeframe_week = visible_timeframe_day or timeframe.period == "D"
+visible_timeframe_month = visible_timeframe_week or timeframe.period == "W"
+// ------------------------------------------- Securities
+// Day
+high_prev_day = security(syminfo.tickerid, "D", high)
+low_prev_day = security(syminfo.tickerid, "D", low)
+close_prev_day = security(syminfo.tickerid, "D", close)
+// Week
+high_prev_week = security(syminfo.tickerid, "W", high)
+low_prev_week = security(syminfo.tickerid, "W", low)
+close_prev_week = security(syminfo.tickerid, "W", close)
+// Month
+high_prev_month = security(syminfo.tickerid, "M", high)
+low_prev_month = security(syminfo.tickerid, "M", low)
+close_prev_month = security(syminfo.tickerid, "M", close)
+// ------------------------------------------- Plotting
+dashed_line_color = bar_index % 2 == 0 ? color.new(color.yellow, 50) : color.yellow
+solid_line_color = color.yellow
+// Day
+plot(series = enable_pdhlc and visible_timeframe_day ? high_prev_day[1] : na, title = "PDH", color = solid_line_color, style = plot.style_stepline)
+plot(series = enable_pdhlc and visible_timeframe_day ? low_prev_day[1] : na, title = "PDL", color = solid_line_color, style = plot.style_stepline)
+plot(series = enable_pdhlc and visible_timeframe_day ? close_prev_day[1] : na, title = "PDC", color = dashed_line_color, style = plot.style_stepline)
+// Week
+plot(series = enable_pwhlc and visible_timeframe_week ? high_prev_week[1] : na, title = "PWH", color = solid_line_color, style = plot.style_stepline)
+plot(series = enable_pwhlc and visible_timeframe_week ? low_prev_week[1] : na, title = "PWL", color = solid_line_color, style = plot.style_stepline)
+plot(series = enable_pwhlc and visible_timeframe_week ? close_prev_week[1] : na, title = "PWC", color = dashed_line_color, style = plot.style_stepline)
+// Month
+plot(series = enable_pmhlc and visible_timeframe_month ? high_prev_month[1] : na, title = "PMH", color = solid_line_color, style = plot.style_stepline)
+plot(series = enable_pmhlc and visible_timeframe_month ? low_prev_month[1] : na, title = "PML", color = solid_line_color, style = plot.style_stepline)
+plot(series = enable_pmhlc and visible_timeframe_month ? close_prev_month[1] : na, title = "PMC", color = dashed_line_color, style = plot.style_stepline)
