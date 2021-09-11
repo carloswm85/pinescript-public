@@ -1,0 +1,198 @@
+// This source code is subject to the terms of the Osozilla Public License 2.0 at https://mozilla.org/OsPL/2.0/
+// © BlueJayBird
+// @author @BlueJayBird
+// @version=4
+
+study(title="[bjb] OSK - Oscillator's Swiss Knife, by @BlueJayBird", shorttitle="OSK", format = format.price, precision = 2, scale = scale.right)
+
+// If this tool has helped you to improve your trading and therefore your income, any donation is appreciated:
+// BTC: 3Dj9jfGuJ861oEH7kA1zpgMssPw2PYF7Gq
+// ETH and USDT: 0xc8645305ab8c08f08bcbc89c020b63362527f771
+
+// OSCILLATOR LINES -----------------------------------------------------------------
+// ----------------- INPUTS
+// Constants
+transparency = 0
+drawOnRealTime = true // "Draw On Candles Yet To Close"
+// ------------------------------------------------------------ Inputs
+// Global
+enable = input(title = "Enable Oscillator's Swiss Knife (OSK)", type = input.bool, defval = true)
+resolution = input(title = "Resolution", defval = "", type=input.resolution)
+enablePoints = input(false, title="Enable OSK Points")
+enableBG = input(true, title="Enable Background")
+// RSI & MFI (OSK)
+type = input(title = "Type", defval = "RSI", options = ["MFI", "RSI"])
+length = input(14, minval = 1, title = "Length")
+overbought_rsi = input(70.0, minval = 1, title = "OB RSI")
+oversold_rsi = input(30.0, minval = 1, title = "OS RSI")
+// Standard Deviation (SDV)
+enable_stdv = input(title = "Enable Standard Deviation (SDV)", type = input.bool, defval = false) 
+// Volume (VOL)
+enable_volume = input(title = "Enable Simple Volume Oscillator (SVO)", type = input.bool, defval = true) 
+volume_length = input(14, minval=1, title="VOL Length")
+volume_smoothing = input(21, minval=1, title="VOL Smoothing")
+// SMA
+smaEnable = input(false, title="Enable SMA")
+smaLength = input(7, minval=1, title="SMA Length")
+
+// ------------------------------------------------------------ Imports
+source = type == "MFI" ? hlc3 : type == "RSI" ? close : na
+mode = type == "MFI" ? mfi(source, length) : type == "RSI" ? rsi(source, length) : na
+security = security(syminfo.tickerid, resolution , mode)
+
+// ------------------------------------------------------------ Calculations
+// Signals
+overbought = type == "MFI" ? 80 : type == "RSI" ? overbought_rsi : na
+oversold = type == "MFI" ? 20 : type == "RSI" ? oversold_rsi : na
+securityOB = security >= overbought
+securityOS = security <= oversold
+// sdv
+standar_dev = stdev(source, length)
+standar_dev_rsied = rsi(standar_dev, length)
+security_stdev = security(syminfo.tickerid, resolution , standar_dev_rsied)
+// VOLR
+volume_rsied = rsi(vwma(volume, volume_smoothing), volume_length)
+security_volume = security(syminfo.tickerid, resolution , volume_rsied)
+// SMA
+sma = sma(security, smaLength)
+
+// ------------------------------------------------------------ Plotting
+// Color Palette
+color_a = color.new(color.yellow, 20)
+color_b = color.new(color.aqua, 20)
+// OSK
+plot(enable ? security : na, color = color_a, title = "RSI", editable = true)
+// SDV
+plot(enable_stdv ? security_stdev : na, color = color_b, title = "SDV", editable = true)
+// Points
+plot(enablePoints ? security : na, title = "Points", style = plot.style_cross, color = color.white, editable = true)
+// SMA
+plot(smaEnable ? sma : na, color = sma >= 50 ? color.aqua : color.yellow, title="SMA", linewidth = 2, transp = 50, editable = true)
+// Signals
+plotshape(securityOB and enable and resolution == "" ? security + 4 : na, title = "Overbought", location = location.absolute, color = color_a, transp = 0, style = shape.triangledown, text = "", editable = true)
+plotshape(securityOS and enable and resolution == "" ? security - 4 : na, title = "Oversold", location = location.absolute, color = color_a, transp = 0, style = shape.triangleup, text = "", editable = true)
+// Volume
+plot(enable_volume ? security_volume : na, color = color.orange, title = "SVO", editable = true)
+
+// BACKGROUND
+color_red = color.new(color.red, 40)
+color_green = color.new(color.green, 40)
+color_yellow = color.new(color.yellow, 40)
+color_white = color.new(color.white, 40)
+line1 = hline(enableBG ? overbought : na, title = "Upper Band", color = color_green, linestyle = hline.style_dashed, editable = false)
+line2 = hline(enableBG ? 60 : na, title = "Quarter Upper Band", color = color_yellow, linestyle = hline.style_dotted, editable = false)
+line3 = hline(enableBG ? 50 : na, title = "Middle Band", color = color_white, linestyle = hline.style_dotted, editable = false)
+line4 = hline(enableBG ? 40 : na, title = "Quarter Lower Band", color = color_yellow, linestyle = hline.style_dotted, editable = false)
+line5 = hline(enableBG ? oversold : na, title = "Lower Band", color = color_red, linestyle = hline.style_dashed, editable = false)
+bgc1 = color.new(color.green, 90)
+bgc2 = color.new(color.yellow, 90)
+bgc3 = color.new(color.red, 90)
+fill(line1, line2, color = bgc1, editable = false)
+fill(line2, line4, color = bgc2, editable = false)
+fill(line4, line5, color = bgc3, editable = false)
+
+// ADX --------------------------------------------------
+//@version=4
+enableADX = input(false, title = "Enable ADX")
+adxlen = input(14, title = "ADX Smoothing")
+dilen = input(14, title = "ADX DI Length")
+dirmov(len) =>
+	up = change(high)
+	down = -change(low)
+	plusDM = na(up) ? na : (up > down and up > 0 ? up : 0)
+	minusDM = na(down) ? na : (down > up and down > 0 ? down : 0)
+	truerange = rma(tr, len)
+	plus = fixnan(100 * rma(plusDM, len) / truerange)
+	minus = fixnan(100 * rma(minusDM, len) / truerange)
+	[plus, minus]
+adx(dilen, adxlen) =>
+	[plus, minus] = dirmov(dilen)
+	sum = plus + minus
+	adx = 100 * rma(abs(plus - minus) / (sum == 0 ? 1 : sum), adxlen)
+sig = adx(dilen, adxlen)
+adx_rsied = rsi(sig, adxlen)
+plot(enableADX ? adx_rsied : na, color=color.orange, title = "ADX")
+
+// // ATR
+// enableATR = input(false, title="Enable ATR")
+// length = input(title="ATR Length", defval=9, minval=1)
+// lowerATR = input(title="ATR Lower Extention", defval=0.35)
+// upperATR = input(title="ATR Upper Extention", defval=0.35)
+// smoothing = input(title="ATR Smoothing", defval="RMA", options=["RMA", "SMA", "EMA", "WMA"])
+// ma_function(source, length) =>
+// 	if smoothing == "RMA"
+// 		up = rma(max(change(source), 0), length)
+//         down = rma(-min(change(source), 0), length)
+//         rma = (down == 0 ? 100 : (up == 0 ? 0 : 100) - (100 / (1 + up / down )))
+// 	else
+// 		if smoothing == "SMA"
+// 			up = sma(max(change(source), 0), length)
+//             down = sma(-min(change(source), 0), length)
+//             rma = (down == 0 ? 100 : (up == 0 ? 0 : 100) - (100 / (1 + up / down)))
+// 		else
+// 			if smoothing == "EMA"
+// 				up = ema(max(change(source), 0), length)
+//                 down = ema(-min(change(source), 0), length)
+//                 rma = (down == 0 ? 100 : (up == 0 ? 0 : 100) - (100 / (1 + up / down)))
+// 			else
+// 				up = wma(max(change(source), 0), length)
+//                 down = wma(-min(change(source), 0), length)
+//                 rma = (down == 0 ? 100 : (up == 0 ? 0 : 100) - (100 / (1 + up / down)))
+// atrValue = ma_function(tr(true), length)
+// stretchedAtrValue = atrValue < 50 ? atrValue - atrValue * lowerATR : atrValue + atrValue * upperATR
+// atrSmoothed = sma(stretchedAtrValue, length)
+// plot(enableATR and atrSmoothed ? atrSmoothed : na, title = "ATR", color=color.orange, transp=0)
+// // END
+
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © BlueJayBird
+//@version=4
+
+// If this has helped you to improve your trading and therefore your income, any donation is appreciated:
+// BTC: 3Dj9jfGuJ861oEH7kA1zpgMssPw2PYF7Gq (SegWit compatible, P2SH)
+// ETH and USDT: 0xc8645305ab8c08f08bcbc89c020b63362527f771
+
+//BTC%LS - BTC Long Vs Shorts Oscillator (with %), by @BlueJayBird
+// ------------------------------------------- Inputs
+// Longs and Shorts
+btc_ls_enable = input(defval = false, title = "Enable LS", type = input.bool)
+btc_ls_enable_dominance = input(defval = false, title = "Enable %LS", type = input.bool)
+btc_ls_length = input(defval = 14, title = "LS Length")
+btc_ls_enable_fill = input(defval = false, title = "Enable LS Fill", type = input.bool)
+btc_ls_enable_fill_percent = input(defval = false, title = "Enable %LS Fill", type = input.bool)
+btc_ls_length_percent = input(defval = 75, title = "%LS Length")
+btc_ls_resolution = input(defval = "", title = "LS/%LS Resolution", type = input.resolution)
+btc_longs_sec = security("BITFINEX:BTCUSDLONGS", resolution = btc_ls_resolution, expression = close)
+btc_shorts_sec = security("BITFINEX:BTCUSDSHORTS", resolution = btc_ls_resolution, expression = close)
+// Percental
+
+// ------------------------------------------- Calculations
+// Longs and Shorts
+btc_ls_longs = rsi(btc_longs_sec, btc_ls_length)
+btc_ls_shorts = rsi(btc_shorts_sec, btc_ls_length)
+// Percental
+btc_ls_sum = btc_ls_longs + btc_ls_shorts
+btc_ls_percent = rsi(btc_ls_sum, btc_ls_length)
+btc_ls_green = (btc_ls_percent >= 50 ) ? 1 : 0
+btc_ls_red = (btc_ls_percent < 50) ? -1 : 0
+btc_ls_green_sum = sum(btc_ls_green, btc_ls_length_percent)
+btc_ls_green_percent = (btc_ls_green_sum * 100) / btc_ls_length_percent
+btc_ls_red_sum = sum(btc_ls_red, btc_ls_length_percent)
+btc_ls_red_percent = (btc_ls_red_sum * 100) / btc_ls_length_percent
+
+// ------------------------------------------- Plotting
+bgc_btc_ls_fill = iff(btc_ls_longs > btc_ls_shorts, color.new(color.green, 90), color.new(color.red, 90))
+bgc_btc_ls_fill_percent = iff(btc_ls_green_percent > -btc_ls_red_percent, color.new(color.green, 90), color.new(color.red, 90))
+// Longs and Shorts
+btc_ls_longs_plot = plot(btc_ls_enable ? btc_ls_longs : na, title = "Longs", color = color.green, linewidth = 1, style = plot.style_line, editable = true)
+btc_ls_shorts_plot =plot(btc_ls_enable ? btc_ls_shorts : na, title = "Shorts", color = color.red, linewidth = 1, style = plot.style_line, editable = true)
+fill(btc_ls_longs_plot, btc_ls_shorts_plot, btc_ls_enable_fill ? bgc_btc_ls_fill : na, editable = true, title = "LS Fill")
+// Percental
+btc_ls_long_percent_plot = plot(btc_ls_enable_dominance ? btc_ls_green_percent : na, color = color.green, transp = 0, editable = true, title = "%Longs")
+btc_ls_short_percent_plot = plot(btc_ls_enable_dominance ? -btc_ls_red_percent : na, color = color.red, transp = 0, editable = true, title = "%Shorts")
+fill(btc_ls_long_percent_plot, btc_ls_short_percent_plot, btc_ls_enable_fill_percent ? bgc_btc_ls_fill_percent : na, editable = true, title = "%LS Fill")
+
+
+// ================================================= //
+// ----------------> OHLC Oscillator <-------------- //
+// ================================================= //

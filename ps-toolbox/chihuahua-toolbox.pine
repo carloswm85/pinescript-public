@@ -83,10 +83,11 @@ if enable_lines_ltf
 // ---------------------> Previous Daily HLC <------------------------------ //
 // ========================================================================= //
 // High, Low, and Close, as horizontal lines from the selected resolution. From the previous period. Default is 1D.
+// It is suggested to take a look at 1W as well.
 
 // --------------------------------------------------------------------- Inputs
 enable_previous_hlc   = input(defval=true, title="Enable Previous HLC", type=input.bool, group="Previous HLC Settings")
-hlc_resolution = input(defval="D", title="Resolution", type=input.resolution, group="Previous HLC Settings")
+hlc_resolution = input(defval="W", title="Resolution", type=input.resolution, group="Previous HLC Settings")
 
 high_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=high)
 low_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=low)
@@ -158,6 +159,13 @@ cross_50_200_alert = cross_50_200(ema_security_50, ema_security_200)
 if cross_50_200_alert
     // Trigger the alert the first time it occurs during the real-time bar.
     alert("EMA50 over EMA200: " + tostring(close) + " triggered.", alert.freq_once_per_bar)
+
+
+// ========================================================================= //
+// -----------------------------> Single MA <------------------------------- //
+// ========================================================================= //
+// 
+
 
 
 // ========================================================================= //

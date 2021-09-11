@@ -1,0 +1,63 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © BlueJayBird
+//@version=4
+
+study(title="[bjb] Double Single MA", shorttitle="dsMA", overlay=true)
+
+// ========================================================================= //
+// ---------------------------> Double Single MA <-------------------------- //
+// ========================================================================= //
+// 2 MAs, useful when following strong impulses in both directions, whent set to 9.
+
+// FEATURES:
+// - 2 MAs
+// - Multiple MA types selection.
+
+// --------------------------------------------------------------------- Inputs
+enable_dsma_1 = input(defval=true,  title="DsMA1", group="Enablers")
+enable_dsma_2 = input(defval=true,  title="DsMA2", group="Enablers")
+
+dsma_type = input(defval="EMA", title="Type", options=["EMA", "MA", "RMA", "SMMA", "VWMA", "WMA"], group="Settings")
+dsma_length = input(defval=9,  title = "Length", group="Settings")
+
+dsma_1_source = input(defval=low,  title = "Source DsMA1", group="Settings")
+dsma_2_source = input(defval=high,  title = "Source DsMA2", group="Settings")
+
+// ------------------------------------------------------------------ Variables
+float dsma_1 = na
+float dsma_2 = na
+
+// --------------------------------------------------------------------- Colors
+color_dsma = color.new(color.gray, 20)
+
+// ------------------------------------------------------------------ Functions
+smma(sourceSMMA, lenSMMA) =>
+    float valueSMMA = na
+    localSMA = sma(sourceSMMA, lenSMMA)
+    valueSMMA := na(valueSMMA[1]) ? localSMA : (valueSMMA[1] * (lenSMMA - 1) + sourceSMMA) / lenSMMA
+
+// --------------------------------------------------------------------- Values
+if dsma_type == "EMA"
+	dsma_1 := ema(dsma_1_source, dsma_length)
+	dsma_2 := ema(dsma_2_source, dsma_length)
+if dsma_type == "MA"
+	dsma_1 := sma(dsma_1_source, dsma_length)
+	dsma_2 := sma(dsma_2_source, dsma_length)
+if dsma_type == "RMA"
+	dsma_2 := rma(dsma_1_source, dsma_length)
+	dsma_1 := rma(dsma_2_source, dsma_length)
+if dsma_type == "SMMA"
+	dsma_1 := smma(dsma_1_source, dsma_length)
+	dsma_2 := smma(dsma_2_source, dsma_length)
+if dsma_type == "VWMA"
+	dsma_1 := vwma(dsma_1_source, dsma_length)
+	dsma_2 := vwma(dsma_2_source, dsma_length)
+if dsma_type == "WMA"
+	dsma_1 := wma(dsma_1_source, dsma_length)
+	dsma_2 := wma(dsma_2_source, dsma_length)
+
+// --------------------------------------------------------------------- Plot
+plot(enable_dsma_1 ? dsma_1 : na,  title="DsMA1", color=color_dsma, linewidth=2)
+plot(enable_dsma_2 ? dsma_2 : na,  title="DsMA2", color=color_dsma, linewidth=2)
+
+
