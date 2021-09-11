@@ -11,6 +11,8 @@ study(title="[bjb] Chihuahua Toolbox", shorttitle="chTx", overlay=true)
 // 3. Classic EMAs
 // 4. RSI Signals
 // 5. Double Single MAs
+// 6. Wicks Highlighter
+// 7. S&Ds Supply and Demand Signals (Aggressiveness on buying and selling levels)
 
 // READINGS:
 // Extend lines into the future: https://www.pinecoders.com/faq_and_code/#how-can-i-draw-lines-or-labels-into-the-future
@@ -23,6 +25,7 @@ enable_ema      = input(defval=true, title="Classic EMAs", type=input.bool, tool
 enable_rsi_s    = input(defval=true, title="RSI Signals", type=input.bool, tooltip="Overlay (in main chart) oversold and overbought RSI signals", group="Enablers")
 enable_dsma     = input(defval=true,  title="Double Single Moving Averages - DsMAs", tooltip="Mainly for scalping. 2 EMAs with default value of 9", group="Enablers")
 enable_wh       = input(defval=true, title="Wicks Highlighter - WH", type=input.bool, tooltip="White wicks for n previous candlesticks", group="Enablers")
+enable_snd       = input(defval=false, title="Supply and Demand Signals - WH", type=input.bool, tooltip="Two level signals for high and ultra-high volume zones.", group="Enablers")
 // TODO: Add supply and demand signals.
 
 
@@ -221,8 +224,8 @@ rsi_os = rsi_security <= oversold_rsi_signals
 rsi_ob = rsi_security >= overbought_rsi_signals
 
 // ------------------------------------------------------------------- Plotting
-plotshape(rsi_ob and enable_rsi_s and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangledown, title="RSI Overbought", location=location.abovebar)
-plotshape(rsi_os and enable_rsi_s and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangleup, title = "RSI Oversold", location=location.belowbar)
+plotshape(rsi_ob and enable_rsi_s and (barstate.ishistory or draw_ort), color=color.yellow, transp=50, text="", style=shape.xcross, title="RSI Overbought", location=location.top)
+plotshape(rsi_os and enable_rsi_s and (barstate.ishistory or draw_ort), color=color.yellow, transp=50, text="", style=shape.xcross, title="RSI Oversold", location=location.bottom)
 
 
 // ========================================================================= //
@@ -249,7 +252,7 @@ float dsma_1 = na
 float dsma_2 = na
 
 // --------------------------------------------------------------------- Colors
-dsma_color = color.new(color.gray, 20)
+dsma_color = color.new(color.gray, 50)
 
 // ------------------------------------------------------------------ Functions
 smma(sourceSMMA, lenSMMA) =>
@@ -277,7 +280,7 @@ if dsma_type == "WMA"
 	dsma_1 := wma(dsma_1_source, dsma_length)
 	dsma_2 := wma(dsma_2_source, dsma_length)
 
-// --------------------------------------------------------------------- Plot
+// ----------------------------------------------------------------------- Plot
 plot(enable_dsma and enable_dsma_1 ? dsma_1 : na,  title="DsMA1", color=dsma_color, linewidth=2)
 plot(enable_dsma and enable_dsma_2 ? dsma_2 : na,  title="DsMA2", color=dsma_color, linewidth=2)
 
@@ -285,12 +288,94 @@ plot(enable_dsma and enable_dsma_2 ? dsma_2 : na,  title="DsMA2", color=dsma_col
 // ========================================================================= //
 // ----------------------------> Wick Highligher <-------------------------- //
 // ========================================================================= //
+//
+
+// FEATURES:
+// - 
+
 wh_length = input(defval=6,  title = "Length", group="Wick Highlighter")
 wh_body_color = color.new(color.silver, 100)
 wh_wick_color = color.new(color.white, 10)
 plotcandle(open, high, low, enable_wh ? close : na, title='WH', color=wh_body_color, wickcolor=wh_wick_color, bordercolor=wh_body_color, show_last=wh_length)
 
 
+// ========================================================================= //
+// -------------------> S&Ds Supply and Demand Signals <-------------------- //
+// ========================================================================= //
+//
 
+// FEATURES:
+// - 
+
+// ------------------------------------------------------------------- Enablers
+enable_supply_signals = input(defval=true, title="Enable Supply Zone Signals (SZS)", type=input.bool, group="Supply and Demand Signals (S&Ds)")
+enable_demand_signals = input(defval=true, title="Enable Demand Zone Signals (DZS)", type=input.bool, group="Supply and Demand Signals (S&Ds)")
+enable_primary_signals = input(defval=true, title="Enable Primary S&D Signals (pS)", type=input.bool, group="Supply and Demand Signals (S&Ds)")
+enable_secondary_signals = input(defval=true, title="Enable Secondary S&D Signals (sS)", type=input.bool, group="Supply and Demand Signals (S&Ds)")
+
+// ------------------------------------------------------------------ Smoothers
+volume_smoother_a = input(defval=20, title="VMA Smoother A (LV, MV, HV)", type=input.integer)
+volume_smoother_b = input(defval=5, title="VMA Smoother B (LV, MV, HV)", type=input.integer)
+volume_smoother_c = input(defval=200, title="VMA Smoother C (UHV)", type=input.integer)
+
+// -----------------------------------------------------------------Multipliers
+volume_res1_multiplier = input(defval=1.1, title="Low Volume (LV) Multiplier", type=input.float)
+volume_res2_multiplier = input(defval=1.5, title="Medium Volume (MV) Multiplier", type=input.float)
+volume_res3_multiplier = input(defval=2.1, title="High Volume (HV) Multiplier", type=input.float)
+volume_res4_multiplier = input(defval=7.5, title="Ultra-High Volume (UHV) Multiplier", type=input.float)
+
+// ---------------------------------------------------------------------- Input
+volume_resolution = ""
+volume_sec = security(symbol=syminfo.tickerid, resolution=volume_resolution, expression=volume)
+volume_sec_close = security(symbol=syminfo.tickerid, resolution=volume_resolution, expression=close)
+volume_sec_open = security(symbol=syminfo.tickerid, resolution=volume_resolution, expression=open)
+volume_sec_hl2 = security(symbol=syminfo.tickerid, resolution=volume_resolution, expression=hl2)
+transparencyOsSignals = 0
+drawOnRealTime = true // "Draw On Candles Yet To Close"
+
+// ------------------------------------------------------------------ Functions
+// Label Colors
+shape_color(ma, ma2, ma3, ma4) =>
+    if volume_sec_close >= volume_sec_open
+        // Bullish Volume
+        if volume_sec >= ma4
+            color.new(color.white, 0)
+        else if volume_sec >= ma3
+            color.new(color.yellow, 0)
+        else if volume_sec >= ma2
+            color.new(color_upwards_price, 10)
+        else if volume_sec < ma2 and volume_sec >= ma
+            color.new(color_upwards_price, 40)
+        else
+            vol_green = color.new(color_upwards_price, 70)
+    else
+        // Bearish
+        if volume_sec >= ma4
+            color.new(color.white, 0)
+        else if volume_sec >= ma3
+            color.new(color.yellow, 0)
+        else if volume_sec >= ma2
+            color.new(color_downwards_price, 10)
+        else if volume_sec < ma2 and volume_sec >= ma
+            color.new(color_downwards_price, 40)
+        else
+            color.new(color_downwards_price, 70)
+
+// --------------------------------------------------------------- Calculations
+vol_ma_resistance_1 = ema(sma(volume_sec * volume_res1_multiplier, volume_smoother_a), volume_smoother_b)
+vol_ma_resistance_2 = ema(vwma(volume_sec * volume_res2_multiplier, volume_smoother_a), volume_smoother_b)
+vol_ma_resistance_3 = ema(vwma(volume_sec * volume_res3_multiplier, volume_smoother_a), volume_smoother_b)
+volume_res4_multiplier := timeframe.period == "60" ? 4.1 : 7.5
+vol_ma_resistance_4 = sma(volume_sec * volume_res4_multiplier, volume_smoother_c)
+
+// ------------------------------------------------------------------- Plotting
+enable_supply = enable_supply_signals and enable_primary_signals and enable_snd
+enable_demand = enable_demand_signals and enable_primary_signals and enable_snd
+// S&D Labels, Primary Signals
+plotshape(enable_supply and (barstate.ishistory or drawOnRealTime) and volume_sec > vol_ma_resistance_2 and volume_sec_hl2 > volume_sec_hl2[1], color = shape_color(vol_ma_resistance_1, vol_ma_resistance_2, vol_ma_resistance_3, vol_ma_resistance_4), transp = transparencyOsSignals, style = shape.circle, title = "Primary SZS", location = location.abovebar)
+plotshape(enable_demand and (barstate.ishistory or drawOnRealTime) and volume_sec > vol_ma_resistance_2 and volume_sec_hl2 <= volume_sec_hl2[1], color = shape_color(vol_ma_resistance_1, vol_ma_resistance_2, vol_ma_resistance_3, vol_ma_resistance_4), transp = transparencyOsSignals, style = shape.circle, title = "Primary DZS", location = location.belowbar)
+// S&D Secondary Signals
+plotshape(enable_supply and enable_secondary_signals and (barstate.ishistory or drawOnRealTime) and volume_sec > vol_ma_resistance_1 and volume_sec <= vol_ma_resistance_2 and volume_sec_hl2 > volume_sec_hl2[1], color = color_downwards_price, transp = transparencyOsSignals, style = shape.circle, title = "Secondary SZS", location = location.abovebar)
+plotshape(enable_demand and enable_secondary_signals and (barstate.ishistory or drawOnRealTime) and volume_sec > vol_ma_resistance_1 and volume_sec <= vol_ma_resistance_2 and volume_sec_hl2 <= volume_sec_hl2[1], color = color_upwards_price, transp = transparencyOsSignals, style = shape.circle, title = "Secondary DZS", location = location.belowbar)
 
 // → END OF SCRIPT
