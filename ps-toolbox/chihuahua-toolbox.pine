@@ -21,6 +21,7 @@ study(title="[bjb] Chihuahua Toolbox", shorttitle="chTx", overlay=true)
 enable_vl  = input(defval=true, title="Vertical Lines", type=input.bool, group="Enablers")
 enable_previous_hlc = input(defval=true, title="Previous HLC", type=input.bool, group="Enablers")
 enable_ema = input(title="EMAs 20/50/200", defval=true, type=input.bool, group="Enablers")
+enable_rsi_signals = input(title="RSI Signals", type=input.bool, defval=true, group="Enablers")
 enable_dsma = input(defval=true,  title="DsMAs", group="Enablers")
 
 
@@ -102,7 +103,7 @@ if enable_vl and enable_lines_ltf
 enable_phlc_high = input(defval=true, title="pHLC High", type=input.bool, group="Previous HLC")
 enable_phlc_low = input(defval=true, title="pHLC Low", type=input.bool, group="Previous HLC")
 enable_phlc_close = input(defval=true, title="pHLC Close", type=input.bool, group="Previous HLC")
-hlc_resolution = input(defval="W", title="Resolution", type=input.resolution, group="Previous HLC")
+hlc_resolution = input(defval="D", title="Resolution", type=input.resolution, group="Previous HLC")
 
 high_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=high)
 low_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=low)
@@ -132,6 +133,9 @@ plot(hlc_condition and enable_phlc_close ? close_security_value : na, title="clo
 // ---------------------------> Classic EMAs <------------------------------ //
 // ========================================================================= //
 // 3 Exponential Moving Averages, they are classic EMAs 20/50/200
+
+// FEATURES:
+// - 
 
 // --------------------------------------------------------------------- Inputs
 ema_enable_fill_20_50 = input(title="EMAs Fill 20/50", defval=true, type=input.bool, group="EMAs")
@@ -202,7 +206,6 @@ transparency_rsi_signals = 20
 draw_ort = true // "Draw On Candles Yet To Close", on real time
 
 // --------------------------------------------------------------------- Inputs
-enable_rsi_signals = input(title="RSI Signals", type=input.bool, defval=true, group="RSI Signals")
 source_rsi_signals =  input(defval=close, title="Source", group="RSI Signals")
 length_rsi_signals = input(defval=14, minval=1, title="Length", group="RSI Signals")
 oversold_rsi_signals = input(defval=30, minval=1, title="Oversold", group="RSI Signals")
