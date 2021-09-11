@@ -11,10 +11,17 @@ study(title="[bjb] Chihuahua Toolbox", shorttitle="chTx", overlay=true)
 // 2. Previous Daily HLC 
 // 3. Classic EMAs
 // 4. RSI Signals
+// 5. Double Single MAs
 
 // READINGS:
 // Extend lines into the future: https://www.pinecoders.com/faq_and_code/#how-can-i-draw-lines-or-labels-into-the-future
 // Indicator repainting: https://www.tradingview.com/pine-script-docs/en/v4/essential/Indicator_repainting.html
+
+// GENERAL SETTINGS
+enable_vl  = input(defval=true, title="Vertical Lines", type=input.bool, group="Enablers")
+enable_previous_hlc = input(defval=true, title="Previous HLC", type=input.bool, group="Enablers")
+enable_ema = input(title="EMAs 20/50/200", defval=true, type=input.bool, group="Enablers")
+enable_dsma = input(defval=true,  title="DsMAs", group="Enablers")
 
 
 // ========================================================================= //
@@ -24,6 +31,10 @@ study(title="[bjb] Chihuahua Toolbox", shorttitle="chTx", overlay=true)
 // In this case, the selected timeframes are 4h and 1D
 // TODO: Add automatization for timeframes larger than 4h and 1D, do not display those vertical lines at HTF.
 
+// FEATURES:
+// - 
+
+
 // ------------------------------------------------------------------ Functions
 vline(BarIndex, Color, LineStyle, LineWidth) => // Verticle Line Function, ≈50-54 lines maximum allowable per indicator
     // return = line.new(BarIndex,   0.0, BarIndex,     100.0, xloc.bar_index, extend.both, Color, LineStyle, LineWidth) // Suitable for study(overlay=false) and RSI, Stochastic, etc...
@@ -32,14 +43,14 @@ vline(BarIndex, Color, LineStyle, LineWidth) => // Verticle Line Function, ≈50
 
 // --------------------------------------------------------------------- Inputs
 // Lower Timeframes
-enable_lines_ltf  = input(defval=true, title="Lower Timeframes", type=input.bool, group="Enable Vertical Lines LTF")
-enable_lines_1h   = input(defval=true, title="1h", type=input.bool, group="Enable Vertical Lines LTF")
-enable_lines_4h   = input(defval=true, title="4h", type=input.bool, group="Enable Vertical Lines LTF")
+enable_lines_ltf  = input(defval=true, title="Lower Timeframes", type=input.bool, group="Vertical Lines LTF")
+enable_lines_1h   = input(defval=true, title="1h", type=input.bool, group="Vertical Lines LTF")
+enable_lines_4h   = input(defval=true, title="4h", type=input.bool, group="Vertical Lines LTF")
 // Higher Timeframes
-enable_lines_htf  = input(defval=true, title="Higher Timeframes", type=input.bool, group="Enable Vertical Lines HTF")
-enable_lines_1D   = input(defval=true, title="1D", type=input.bool, group="Enable Vertical Lines HTF")
-enable_lines_1W   = input(defval=true, title="1W", type=input.bool, group="Enable Vertical Lines HTF")
-enable_lines_1M   = input(defval=true, title="1M", type=input.bool, group="Enable Vertical Lines HTF")
+enable_lines_htf  = input(defval=true, title="Higher Timeframes", type=input.bool, group="Vertical Lines HTF")
+enable_lines_1D   = input(defval=true, title="1D", type=input.bool, group="Vertical Lines HTF")
+enable_lines_1W   = input(defval=true, title="1W", type=input.bool, group="Vertical Lines HTF")
+enable_lines_1M   = input(defval=true, title="1M", type=input.bool, group="Vertical Lines HTF")
 open_hour   = 00
 open_minute = 00
 
@@ -48,10 +59,10 @@ open_minute = 00
 is_hour     = hour==open_hour
 is_minute   = minute==open_minute
 is_hour_4h 	= iff(hour==4 or hour==8 or hour==12 or hour==16 or hour==20, true, false)
-// Timeframe visibility, for the given vertical line...
-visibility_1h = iff(timeframe.period=="1" or timeframe.period=="3" or timeframe.period=="5" or timeframe.period=="15" or timeframe.period=="30" or timeframe.period=="45", true, false) // Gray lines. Visible at...
+// Timeframe visibility/non-visibility, for the given vertical line...
+visibility_1h = iff(timeframe.period=="1" or timeframe.period=="3" or timeframe.period=="5" or timeframe.period=="15" or timeframe.period=="45", true, false) // Gray lines. Visible at...
 visibility_4h = iff(timeframe.period=="60" or timeframe.period=="120" or timeframe.period=="180" or timeframe.period=="240" or timeframe.period=="D" or timeframe.period=="W" or timeframe.period=="M", false, true) // Orange lines. Not visible at...
-visibility_1D = iff(timeframe.period=="D" or timeframe.period=="W" or timeframe.period=="M", false, true) // Yellow lines. Not visible at...
+visibility_1D = iff(timeframe.period=="240" or timeframe.period=="D" or timeframe.period=="W" or timeframe.period=="M", false, true) // Yellow lines. Not visible at...
 visibility_1W = iff(timeframe.period=="W" or timeframe.period=="M", false, true) // Blue lines. Not visible at...
 
 // ---------------------------------------------------------- (pseudo) Plotting
@@ -63,16 +74,16 @@ vl_green =  color.new(#4caf50, 40) // For beginning of week. Green.
 vl_blue =  color.new(#2962ff, 40) // For beginning of month. Blue.
 
 // Variable assignment not required, not plotting
-if(enable_lines_htf and is_hour and is_minute)
+if(enable_vl and enable_lines_htf and is_hour and is_minute)
     // TODO: How do I change the color line for 'start of week' and 'start of month'? At 1D vline.
     if enable_lines_1M and dayofmonth==1
         vline(bar_index, vl_blue, line.style_dashed, 2)
-    else if enable_lines_1W and dayofweek==dayofweek.monday
+    else if enable_lines_1W and dayofweek==dayofweek.monday and visibility_1W
         vline(bar_index, vl_green, line.style_dashed, 2)
     else if enable_lines_1D and visibility_1D
         vline(bar_index, vl_yellow, line.style_dashed, 2) 
     
-if enable_lines_ltf
+if enable_vl and enable_lines_ltf
     if enable_lines_4h and is_hour_4h and is_minute and visibility_4h
         vline(bar_index, vl_orange, line.style_dotted, 2)
     else if enable_lines_1h and is_minute and visibility_1h
@@ -83,11 +94,15 @@ if enable_lines_ltf
 // ---------------------> Previous Daily HLC <------------------------------ //
 // ========================================================================= //
 // High, Low, and Close, as horizontal lines from the selected resolution. From the previous period. Default is 1D.
-// It is suggested to take a look at 1W as well.
+
+// FEATURES:
+// - 
 
 // --------------------------------------------------------------------- Inputs
-enable_previous_hlc   = input(defval=true, title="Enable Previous HLC", type=input.bool, group="Previous HLC Settings")
-hlc_resolution = input(defval="W", title="Resolution", type=input.resolution, group="Previous HLC Settings")
+enable_phlc_high = input(defval=true, title="pHLC High", type=input.bool, group="Previous HLC")
+enable_phlc_low = input(defval=true, title="pHLC Low", type=input.bool, group="Previous HLC")
+enable_phlc_close = input(defval=true, title="pHLC Close", type=input.bool, group="Previous HLC")
+hlc_resolution = input(defval="W", title="Resolution", type=input.resolution, group="Previous HLC")
 
 high_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=high)
 low_security = security(symbol=syminfo.tickerid, resolution=hlc_resolution, expression=low)
@@ -108,9 +123,9 @@ if trim_line_plot[1]
 
 // ------------------------------------------------------------------- Plotting
 hlc_condition = not trim_line_plot and enable_previous_hlc and visibility_1D
-plot(hlc_condition ? high_security_value : na, title="high", style=plot.style_linebr, linewidth=1, color=color.red)
-plot(hlc_condition ? low_security_value : na, title="low", style=plot.style_linebr, linewidth=1, color=color.lime)
-plot(hlc_condition ? close_security_value : na, title="close", style=plot.style_linebr, linewidth=1, color=color.orange)
+plot(hlc_condition and enable_phlc_high ? high_security_value : na, title="high", style=plot.style_linebr, linewidth=1, color=color.red)
+plot(hlc_condition and enable_phlc_low ? low_security_value : na, title="low", style=plot.style_linebr, linewidth=1, color=color.lime)
+plot(hlc_condition and enable_phlc_close ? close_security_value : na, title="close", style=plot.style_linebr, linewidth=1, color=color.orange)
 
 
 // ========================================================================= //
@@ -119,11 +134,10 @@ plot(hlc_condition ? close_security_value : na, title="close", style=plot.style_
 // 3 Exponential Moving Averages, they are classic EMAs 20/50/200
 
 // --------------------------------------------------------------------- Inputs
-ema_enable = input(title="Enable EMAs 20/50/200", defval=true, type=input.bool, group="EMAs Settings")
-ema_enable_fill_20_50 = input(title="Enable EMAs Fill 20/50", defval=true, type=input.bool, group="EMAs Settings")
-ema_enable_fill_50_200 = input(title="Enable EMAs Fill 50/200", defval=false, type=input.bool, group="EMAs Settings")
-ema_source = input(title="Source", defval=low, type=input.source, group="EMAs Settings")
-ema_resolution = input(title="Resolution", defval="", type=input.resolution, group="EMAs Settings")
+ema_enable_fill_20_50 = input(title="EMAs Fill 20/50", defval=true, type=input.bool, group="EMAs")
+ema_enable_fill_50_200 = input(title="EMAs Fill 50/200", defval=false, type=input.bool, group="EMAs")
+ema_source = input(title="Source", defval=low, type=input.source, group="EMAs")
+ema_resolution = input(title="Resolution", defval="", type=input.resolution, group="EMAs")
 
 // ----------------------------------------------------------------- Securities
 ema_security_20 = security(symbol=syminfo.tickerid, resolution=ema_resolution, expression=ema(ema_source, 20))
@@ -135,9 +149,9 @@ color_upwards_price = #26a69a // Classic Green
 color_downwards_price = #ef5350 // Classic Red
 
 // ------------------------------------------------------------------- Plotting
-ema_20_plot = plot(series=ema_enable ? ema_security_20 : na, title="EMA20", color=color.aqua, linewidth=2, transp=30)
-ema_50_plot = plot(series=ema_enable ? ema_security_50 : na, title="EMA50", color=color.orange, linewidth=2, transp=30)
-ema_200_plot = plot(series=ema_enable ? ema_security_200 : na, title="EMA200", color=color.fuchsia, linewidth=2, transp=30)
+ema_20_plot = plot(series=enable_ema ? ema_security_20 : na, title="EMA20", color=color.aqua, linewidth=2, transp=30)
+ema_50_plot = plot(series=enable_ema ? ema_security_50 : na, title="EMA50", color=color.orange, linewidth=2, transp=30)
+ema_200_plot = plot(series=enable_ema ? ema_security_200 : na, title="EMA200", color=color.fuchsia, linewidth=2, transp=30)
 
 // ----------------------------------------------------------------------- Fill
 ema_fill_20_50 = ema_enable_fill_20_50 ? (ema_security_20 >= ema_security_50 ? color_upwards_price : color_downwards_price) : na
@@ -156,32 +170,43 @@ cross_50_200(_ema50, _ema200) =>
 cross_50_200_alert = cross_50_200(ema_security_50, ema_security_200) 
 
 // Funtional Alerts
-if cross_50_200_alert
+//if cross_50_200_alert
     // Trigger the alert the first time it occurs during the real-time bar.
-    alert("EMA50 over EMA200: " + tostring(close) + " triggered.", alert.freq_once_per_bar)
+    //alert("EMA50 over EMA200: " + tostring(close) + " triggered.", alert.freq_once_per_bar)
+    
+// EXTRA ALERTS <- Testing    
+crossover_cond = ema_security_50 >= ema_security_200 ? 1 : -1
 
+if crossover_cond > 0 and crossover_cond[1] <= 0
+    alert ( "[test_all] EMA50 is above EMA 200: " + tostring ( close ) + " triggered.", alert.freq_all )
+    alert ( "[test_perbar] EMA50 is above EMA 200: " + tostring ( close ) + " triggered.", alert.freq_once_per_bar )
+    alert ( "[test_perbarclose] EMA50 is above EMA 200: " + tostring ( close ) + " triggered.", alert.freq_once_per_bar_close )
+else if crossover_cond < 0 and crossover_cond[1] >= 0
+    alert ( "[test] EMA 50 is below EMA 200: " + tostring ( close ) + " triggered.", alert.freq_once_per_bar )
 
-// ========================================================================= //
-// -----------------------------> Single MA <------------------------------- //
-// ========================================================================= //
-// 
-
+// FIX: This is a possible additional solution.
+// crossed_up = EMA_50 > EMA_200 and EMA_50[1] <= EMA_200[1]
+// crossed_dn = EMA_50 < EMA_200 and EMA_50[1] >= EMA_200[1]
 
 
 // ========================================================================= //
 // ----------------------------> RSI Signals <------------------------------ //
 // ========================================================================= //
+//
+
+// FEATURES:
+// - 
 
 //------------------------------------------------------------------- Constants
 transparency_rsi_signals = 20
 draw_ort = true // "Draw On Candles Yet To Close", on real time
 
 // --------------------------------------------------------------------- Inputs
-enable_rsi_signals = input(title="Enable", type=input.bool, defval=true, group="RSI Signlas")
-source_rsi_signals =  input(defval=close, title="Source", group="RSI Signlas")
-length_rsi_signals = input(defval=14, minval=1, title="Length", group="RSI Signlas")
-oversold_rsi_signals = input(defval=30, minval=1, title="Oversold", group="RSI Signlas")
-overbought_rsi_signals = input(defval=70, minval=1, title="Overbought", group="RSI Signlas")
+enable_rsi_signals = input(title="RSI Signals", type=input.bool, defval=true, group="RSI Signals")
+source_rsi_signals =  input(defval=close, title="Source", group="RSI Signals")
+length_rsi_signals = input(defval=14, minval=1, title="Length", group="RSI Signals")
+oversold_rsi_signals = input(defval=30, minval=1, title="Oversold", group="RSI Signals")
+overbought_rsi_signals = input(defval=70, minval=1, title="Overbought", group="RSI Signals")
 
 rsi_security_resolution = input(title="Resolution", defval="", type=input.resolution)
 
@@ -194,6 +219,64 @@ rsi_ob = rsi_security >= overbought_rsi_signals
 // ------------------------------------------------------------------- Plotting
 plotshape(rsi_ob and enable_rsi_signals and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangledown, title="RSI Overbought", location=location.abovebar)
 plotshape(rsi_os and enable_rsi_signals and (barstate.ishistory or draw_ort), color=color.yellow, transp=30, text = "", style=shape.triangleup, title = "RSI Oversold", location=location.belowbar)
+
+
+// ========================================================================= //
+// ---------------------------> Double Single MAs <------------------------- //
+// ========================================================================= //
+// 2 MAs, useful when following strong impulses in both directions, whent set to 9.
+
+// FEATURES:
+// - 2 MAs
+// - Multiple MA types selection.
+
+// --------------------------------------------------------------------- Inputs
+enable_dsma_1 = input(defval=true,  title="DsMA1", group="Double Single MAs")
+enable_dsma_2 = input(defval=true,  title="DsMA2", group="Double Single MAs")
+
+dsma_type = input(defval="EMA", title="Type", options=["EMA", "MA", "RMA", "SMMA", "VWMA", "WMA"], group="Double Single MAs")
+dsma_length = input(defval=9,  title = "Length", group="Double Single MAs")
+
+dsma_1_source = input(defval=low,  title = "Source DsMA1", group="Double Single MAs")
+dsma_2_source = input(defval=high,  title = "Source DsMA2", group="Double Single MAs")
+
+// ------------------------------------------------------------------ Variables
+float dsma_1 = na
+float dsma_2 = na
+
+// --------------------------------------------------------------------- Colors
+dsma_color = color.new(color.gray, 20)
+
+// ------------------------------------------------------------------ Functions
+smma(sourceSMMA, lenSMMA) =>
+    float valueSMMA = na
+    localSMA = sma(sourceSMMA, lenSMMA)
+    valueSMMA := na(valueSMMA[1]) ? localSMA : (valueSMMA[1] * (lenSMMA - 1) + sourceSMMA) / lenSMMA
+
+// --------------------------------------------------------------------- Values
+if dsma_type == "EMA"
+	dsma_1 := ema(dsma_1_source, dsma_length)
+	dsma_2 := ema(dsma_2_source, dsma_length)
+if dsma_type == "MA"
+	dsma_1 := sma(dsma_1_source, dsma_length)
+	dsma_2 := sma(dsma_2_source, dsma_length)
+if dsma_type == "RMA"
+	dsma_2 := rma(dsma_1_source, dsma_length)
+	dsma_1 := rma(dsma_2_source, dsma_length)
+if dsma_type == "SMMA"
+	dsma_1 := smma(dsma_1_source, dsma_length)
+	dsma_2 := smma(dsma_2_source, dsma_length)
+if dsma_type == "VWMA"
+	dsma_1 := vwma(dsma_1_source, dsma_length)
+	dsma_2 := vwma(dsma_2_source, dsma_length)
+if dsma_type == "WMA"
+	dsma_1 := wma(dsma_1_source, dsma_length)
+	dsma_2 := wma(dsma_2_source, dsma_length)
+
+// --------------------------------------------------------------------- Plot
+plot(enable_dsma and enable_dsma_1 ? dsma_1 : na,  title="DsMA1", color=dsma_color, linewidth=2)
+plot(enable_dsma and enable_dsma_2 ? dsma_2 : na,  title="DsMA2", color=dsma_color, linewidth=2)
+
 
 
 // → END OF SCRIPT
